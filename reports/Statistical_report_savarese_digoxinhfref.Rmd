@@ -1,0 +1,243 @@
+---
+title: 'Statistical report: Digoxin in HFrEF'
+author: 'Statistician: Lina Benson'
+  
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 7
+    number_sections: yes
+link-citations: yes
+bibliography: references.bib
+nocite: '@*'
+---
+
+\newpage 
+\tableofcontents 
+\listoffigures
+\listoftables
+\newpage
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, include = TRUE, comment = "",
+  warning = FALSE, message = FALSE, fig.pos = "H",
+  fig.path = "../output/figs/"
+)
+options(knitr.kable.NA = "")
+```
+
+```{r adjust_directory_if_needed, include=FALSE}
+# Uncomment lines below if rmd file is placed in a subdirectory
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+```
+
+```{r load_project}
+# 1. Set options in config/global.dcf
+# 2. Load packages listed in config/global.dcf
+# 3. Import functions and code in lib directory
+
+ProjectTemplate::reload.project()
+
+cacheon <- TRUE
+```             
+
+# Data handling
+
+## Data source
+
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.1.4. 
+
+## Inclusion/exclusion criteria
+
+```{r flow}
+mykable(flow, caption = "Flowchart")
+```
+
+*if a patient dies immediately after the index visit he/she will not 
+collect a drug prescribed at the index visit and thereby be defined as a digoxin user. 
+Throughout, the index date is moved 14 days forward (so the time to outcome is started at 0). 
+
+First patient in: `r min(pdata$shf_indexdtm)` and last patient in: `r max(pdata$shf_indexdtm)`.  
+
+The median age (IQR) is `r pdata %>% summarise(med = dF(median(shf_age), dig = 1),
+                                             q1 = dF(quantile(shf_age, probs = 0.25), dig = 1),
+                                             q3 = dF(quantile(shf_age, probs = 0.75), dig = 1)) %>%
+                                   mutate(out = paste0(med, " (", q1, "-", q3, ")")) %>%
+                                   pull(out)` and 
+`r pdata %>% count(shf_sex) %>%
+  mutate(perc = dF(n / sum(n) * 100, 1)) %>%
+  filter(shf_sex == "Female") %>%
+  pull(perc)`% females.    
+  
+## Created variables 
+
+```{r atc}
+mykable(metalm, caption = "Treatments from DDR")
+```
+
+# Statistical analysis 
+
+## General
+
+All analyses were performed using `r sessionInfo()$R.version$version.string` [@r]. 
+The level of significance is set to 5%, two-sided. No adjustment for multiple 
+comparisons were made and therefore the results should be viewed with some care.
+
+## Missing data
+
+Missing data was imputed with multiple imputation using mice [@mice] for 10 
+datasets and 10 iterations. Variables included in the model are indicated in 
+Table \ref{tab:tab1}. The primary outcome, first heart failure hospitalization/death,
+was included as the Nelson-Aalen estimator. Digoxin use is not included in the imputation model.  
+
+## Propensity scores
+
+A propensity score for treatment with digoxin was estimated for each patient with 
+logistic regression for each of the 10 imputed datasets using the variables 
+indicated in Table \ref{tab:tab1}. 1:1 matching without replacement [@match] 
+was thereafter performed on the average of the resulting 10 ps [@psmatch]. Matching was 
+allowed if the propensity score differed by 0.01 or less. The ability of the ps 
+matching to balance the baseline characteristics was assessed by 
+standardized mean differences.  
+
+1:1 has deemed the best option when taking into account the number of patients 
+retained and sample size. Other matching ratios: `r matchingn`. 
+
+## Digoxin over time
+
+The denominator is the population in the analysis (N = `r nrow(pdata)`). 
+The numerator consists of the number of patients that have at least one digoxin 
+prescription. The calculation is done per year, so a patient without digoxin 
+at index in SwedeHF, for example 2017, might still be included in the numerator for example for 2013 or 2018.  
+
+```{r, child = "../src/overtime.Rmd"}
+
+```
+
+## Baseline characteristics
+
+```{r, child = "../src/tab1.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+## Associations with digoxin use
+
+Odds ratios are estimated using logistic regression with digoxin use as outcome. 
+
+```{r, child = "../src/ortab.Rmd"}
+
+```
+
+### Assumptions
+
+Outliers were investigated with Cook's distance and multicollinearity 
+with the variance inflation factor in the full model in the overall population.
+=> No action deemed necessary. 
+
+\clearpage
+\newpage
+
+## Association digoxin vs outcomes
+
+The following outcomes are considered: 
+
+- All-cause mortality/first HF hospitalization (primary endpoint)
+- All-cause mortality
+- First HF hospitalization
+
+Data were censored at 2018-12-31 or death/emigration, 
+so this assumes that the risk of hf hospitalization 
+would have been the same for a censored patient had the censoring not occurred. 
+
+Incidence per 1000 py was calculated with 95% Poisson confidence intervals. 
+
+The outcomes are presented with the 1 - Kaplan-Meier curves
+and tested with the log-rank test for the whole and matched population. 
+Note that the log-rank test is theoretically 
+redundant since the cox regression gives the same information. 
+Note further that the cox regression for the matched population incorporates 
+a frailty term taking into account the dependency between pairs 
+which is not done in the log-rank test. 
+
+Cox proportional hazards regressions were used to evaluate the association 
+between digoxin and the respective outcomes. 
+In the matched cohort the matched pairs were modelled using a frailty term. 
+
+### Consistency analysis
+
+#### Crossover
+
+In the main analysis digoxin use is considered according to the ITT principle 
+(digoxin at baseline). As a consistency analysis digoxin was included as a 
+time-dependent variable in the model. 
+
+In patients treated with digoxin at baseline the patient was assumed to be on digoxin 
+until LAST dispension + 3 months or end of follow-up 
+(death/emigration/2018-08-01/event) - 5 months independent of how 
+long time between dispensions. In untreated patients, crossover was defined 
+as a new digoxin dispension in the Dispensed Drug Registry and 
+thereafter in the same manner as for patients treated with digoxin at baseline. 
+That means that patients with digoxin at baseline were allowed to cross 
+over max once (Yes-No) and patients without digoxin at baseline were 
+allowed to cross over max twice (No-Yes-No). 
+
+#### Competing risk
+
+The analyses were also performed using a sub-distributional hazards model [@fg] 
+were death was treated as a competing event. 
+
+```{r, child = "../src/km.Rmd"}
+
+```
+
+```{r, child = "../src/outtab.Rmd"}
+
+```
+
+### Subgroups
+
+Performed using interaction effects on the patients in the matched cohort and 
+presented in a Forest plot. 
+Note that there is missing data for some of the variables so the matching 
+(and thereby the adjustment) may therefore not be complete. 
+
+```{r, child = "../src/outtabsub.Rmd"}
+
+```
+
+### Assumptions
+
+The proportional hazards assumption was investigated using the scaled Schoenfeld 
+residuals (cox.zph in [@survival-package]) for the primary outcome 
+in the ps matched cohort (digoxin according to ITT). 
+Possible outliers were visually inspected by plotting the dfbetas. 
+=> `r paste0(stratavars, collapse = ", ")` were deemed not to have proportional
+hazards and therefore stratified for in the cox regressions.  
+
+\clearpage
+\newpage
+
+# Reproducibility
+
+## R session information {#sessioninfo}
+
+```{r sessinfo}
+sessionInfo()
+```
+
+## R code
+
+The R code for all data handling and statistical analyses are found: 
+https://github.com/KIHeartFailure/digoxinhfref. On publication
+the repository will be made public so as to 
+link to it from the resulting article for increased transparency and code sharing.
+No data or output is stored in the repository. 
+
+# References

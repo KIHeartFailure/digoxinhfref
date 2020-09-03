@@ -1,0 +1,300 @@
+```{r outtabsub, cache=cacheon}
+survmysub <- function(time, event, xvar, xvarname) {
+  levs <- levels(pdata %>% pull(!!sym(xvar)))
+
+  out <- data.frame(matrix(NA, ncol = 6, nrow = length(levs) + 1))
+  colnames(out) <- c("Subgroup", "HR (95% CI)", "p", "coef", "lci", "uci")
+
+  out[1, 1] <- xvarname
+
+  for (i in seq_along(levs)) {
+    out[1 + i, 1] <- paste0("  ", levs[i])
+
+    mod <- coxme(formula(paste0(
+      "Surv(", time, ",",
+      event, "=='Yes') ~ shf_digoxin * relevel(", xvar, ", ref = '", levs[i], "') + (1 | par)"
+    )),
+    data = matchp
+    )
+
+    se <- sqrt(vcov(mod)[1])
+
+    out[1 + i, 2] <- paste0(
+      dF(exp(mod$coefficients[1]), dig = 2),
+      " (", dF(exp(mod$coefficients[1] - global_z05 * se), dig = 2),
+      "-", dF(exp(mod$coefficients[1] + global_z05 * se), dig = 2), ")"
+    )
+
+    out[1 + i, 4] <- mod$coefficients[1]
+    out[1 + i, 5] <- mod$coefficients[1] - global_z05 * se
+    out[1 + i, 6] <- mod$coefficients[1] + global_z05 * se
+
+    if (i == 1) {
+      pint <- car::Anova(mod, type = "III", test.statistic = "Wald")
+
+      out[1, 3] <- dF(pint[3, 3], dig = 3, p = TRUE)
+    }
+  }
+  return(out)
+}
+
+survmysub2 <- function(time2, event2) {
+  forestdata <- survmysub(
+    time = time2,
+    event = event2,
+    xvar = "shf_sex",
+    xvarname = "Gender"
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_age_cat",
+      xvarname = "Age (years)"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_location",
+      xvarname = "Location"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_durationhf",
+      xvarname = "Duration of HF (mo)"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_nyha_cat",
+      xvarname = "NYHA class"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_ef",
+      xvarname = "EF (%)"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_heartrate_cat",
+      xvarname = "Heart rate (beats/min)"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_ckd",
+      xvarname = "CKD"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_bmi_cat",
+      xvarname = "BMI (kg/m2)"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_sos_com_af",
+      xvarname = "AF"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_sos_com_ihd",
+      xvarname = "IHD"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_rasarni",
+      xvarname = "RASi/ARNi"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_bbl",
+      xvarname = "Beta-blocker"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_mra",
+      xvarname = "MRA"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_device_cat",
+      xvarname = "Device therapy"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_map_cat",
+      xvarname = "MAP"
+    )
+  )
+}
+
+plotforest <- function(forestdata) {
+  cextext <- 0.9
+
+  minmy <- round(exp(min(forestdata$lci, na.rm = T)), 1)
+  maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
+
+  # c(bottom, left, top, right)
+  par(mar = c(5, 17, 1, 2) + 0.2)
+
+
+  plot(rev(forestdata$coef), 1:nrow(forestdata),
+    cex = 1.2,
+    xlim = c(
+      log(minmy),
+      log(maxmy)
+    ),
+    xlab = NA,
+    ylim = c(1, nrow(forestdata) + .4),
+    axes = FALSE,
+    ylab = NA,
+    main = NA,
+    type = "p",
+    pch = 22,
+    bg = global_kicols[1],
+    col = global_kicols[1]
+  )
+
+  for (i in 1:nrow(forestdata)) {
+    if (!is.na(rev(forestdata$lci)[i])) {
+      matplot(c(rev(forestdata$lci)[i], rev(forestdata$uci)[i]), c(i, i),
+        type = "l", add = TRUE, col = global_kicols[1], cex = 2
+      )
+    }
+  }
+
+  matplot(c(log(1), log(1)), c(-1, nrow(forestdata) + 1), type = "l", lwd = 1, lty = 1, add = TRUE, col = 1)
+
+  axismy <- seq(minmy, maxmy, 0.1)
+  axismy2 <- axismy
+  axismy2[!axismy %in% c(minmy, 1, maxmy)] <- NA
+
+  axis(1,
+    cex.axis = cextext, at = log(axismy),
+    labels = axismy2
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(rev(forestdata$Subgroup), "Subgroup"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 16, hadj = 0
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(rev(forestdata$`HR (95% CI)`), "Hazard Ratio (95% CI)"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 6, hadj = 0.5
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(rev(forestdata$p), "P-value"),
+    cex.axis = cextext, tick = FALSE, las = 1, line = 0.5, hadj = 0.5
+  )
+
+  axis(1,
+    at = 0.05, cex.axis = cextext,
+    labels = "Digoxin  No Digoxin", line = 1, tick = FALSE
+  )
+  axis(1,
+    at = 0, cex.axis = cextext,
+    labels = "better", line = 2, tick = FALSE
+  )
+}
+```
+
+```{r outtabsubdeathhfhosp, cache=cacheon, dependson="outtabsub", fig.cap="Subgroups First HF hospitalization/death", fig.width=5, fig.height=10}
+hfhospdeathforest <- survmysub2(
+  time2 = "sos_outtime_hosphf",
+  event2 = "sos_out_deathhosphf"
+)
+
+plotforest(hfhospdeathforest)
+```
+
+```{r outtabsubdeath, cache=cacheon, dependson="outtabsub", fig.cap="Subgroups Death", fig.width=5, fig.height=10}
+deathforest <- survmysub2(
+  time2 = "sos_outtime_death",
+  event2 = "sos_out_death"
+)
+
+plotforest(deathforest)
+```
+
+```{r outtabsubhfhosp, cache=cacheon, dependson="outtabsub", fig.cap="Subgroups First HF hospitalization", fig.width=5, fig.height=10}
+hfhospforest <- survmysub2(
+  time2 = "sos_outtime_hosphf",
+  event2 = "sos_out_hosphf"
+)
+
+plotforest(hfhospforest)
+```

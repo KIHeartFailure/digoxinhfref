@@ -1,0 +1,20 @@
+```{r overtime}
+
+overtime <- overtime %>%
+  filter(AR >= 2006, AR <= 2018) %>%
+  mutate(percent = n / nrow(pdata) * 100) %>%
+  as.data.frame()
+
+ggplot(
+  data = overtime,
+  aes(x = AR, y = percent)
+) +
+  geom_line(color = global_kicols[1], size = 2) +
+  geom_point(size = 2) +
+  theme_minimal() +
+  scale_x_continuous(labels = overtime$AR, breaks = overtime$AR, minor_breaks = overtime$AR) +
+  # scale_y_continuous(labels = seq(0, 12, .5), breaks = seq(0, 12, .5), minor_breaks = seq(0, 12, .5)) +
+  xlab("Year") +
+  ylab("% of patients") +
+  ylim(7, 9.5)
+```

@@ -1,0 +1,258 @@
+```{r outtab, cache=cacheon}
+survmy <- function(time = NULL, time1, time2, event, eventname, data, matched = FALSE,
+                   sensanalysis = FALSE, fg = FALSE) {
+  tmpdata <- data
+
+  if (sensanalysis) {
+    tmpnrow <- 1
+  } else {
+    if (!matched) {
+      tmpnrow <- 8
+    } else {
+      tmpnrow <- 6
+    }
+  }
+
+  out <- data.frame(matrix(NA, ncol = 4, nrow = tmpnrow))
+
+  out[1, 1] <- eventname
+  colnames(out) <- c("Outcome", "Model", "Digoxin No", "Digoxin Yes")
+
+  if (!sensanalysis) {
+    ## mort (from survfit)
+    fit <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
+      data = tmpdata
+    )
+
+    sfit <- summary(fit, times = c(30, 60, 90, 365))
+
+    if (length(sfit$surv) != 8) {
+      stop("not enough follow-up time for all time points, CHECK!!!!")
+    }
+
+    out[1:4, 2] <- paste("% (95% CI)", c(30, 60, 90, 365), "days")
+
+    out[1:4, 3:4] <- paste0(
+      dF(100 - sfit$surv * 100, dig = 0), " (",
+      dF(100 - sfit$upper * 100, dig = 0), "-",
+      dF(100 - sfit$lower * 100, dig = 0), ")"
+    )
+
+    ## incidence rate
+    out[5, 2] <- "Incidence"
+
+    tmpdata <- tmpdata %>%
+      mutate(eventcount = if_else(!!sym(event) == "Yes", 1, 0))
+
+    ev <- by(tmpdata$eventcount, tmpdata[, "ddr_digoxin"], sum)
+    s <- by(tmpdata[, time], tmpdata[, "ddr_digoxin"], sum) / 365.25
+    r <- pois.exact(x = ev, pt = s / 1000)
+
+    out[5, 3:4] <- paste0(
+      ev, ", ",
+      dF(s, dig = 0), ", ",
+      dF(r$rate, dig = 0), " (",
+      dF(r$lower, dig = 0), "-",
+      dF(r$upper, dig = 0), ")"
+    )
+
+
+    ## cox regressions
+    if (!matched) {
+      # crude
+      mod <- coxph(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
+        data = tmpdata
+      )
+      smod <- summary(mod)
+      out[6, 2] <- "Crude HR (95% CI), p-value"
+      out[6, 3:4] <- c("ref", paste0(
+        dF(smod$conf.int[1, 1], dig = 2),
+        " (", dF(smod$conf.int[1, 3], dig = 2),
+        "-", dF(smod$conf.int[1, 4], dig = 2), "), ",
+        dF(smod$coef[1, 5], dig = 3, p = TRUE)
+      ))
+
+      # adjusted individual covariates
+      amod <- with(imp, coxph(formula(paste0(
+        "Surv(", time, ",", event, " == 'Yes') ~ ddr_digoxin +",
+        paste(modvarsstrata, collapse = " + ")
+      ))))
+
+      ## df the number of events minus the regression coefficients.
+      ## There is support for this from middle of page 149 of the book by Parmer & Machin (ISBN 0471936405)
+      asmod <- summary(pool(amod,
+        dfcom =
+          (amod$analyses[[1]]$nevent - length(amod$analyses[[1]]$coefficients))
+      ))
+
+      out[7, 2] <- "Adj (ind vars) HR (95% CI), p-value"
+      out[7, 3:4] <- c("ref", paste0(
+        dF(exp(asmod$estimate[1]), dig = 2),
+        " (", dF(exp(asmod$estimate[1] - global_z05 * asmod$std.error[1]), dig = 2),
+        "-", dF(exp(asmod$estimate[1] + global_z05 * asmod$std.error[1]), dig = 2), "), ",
+        dF(asmod$p.value[1], dig = 3, p = TRUE)
+      ))
+
+      # adjusted ps
+      mod <- coxph(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin + ns(ps, 4)")),
+        data = tmpdata
+      )
+      smod <- summary(mod)
+      out[8, 2] <- "Adj (ps) HR (95% CI), p-value"
+      out[8, 3:4] <- c("ref", paste0(
+        dF(smod$conf.int[1, 1], dig = 2),
+        " (", dF(smod$conf.int[1, 3], dig = 2),
+        "-", dF(smod$conf.int[1, 4], dig = 2), "), ",
+        dF(smod$coef[1, 5], dig = 3, p = TRUE)
+      ))
+    }
+  }
+
+  if (matched) {
+    if (!fg) {
+      if (!is.null(time)) {
+        mod <- coxme(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin + (1 | par)")),
+          data = tmpdata
+        )
+
+        se <- sqrt(vcov(mod)[1])
+
+        out[tmpnrow, 2] <- "Adj (ps) HR (95% CI), p-value"
+        out[tmpnrow, 3:4] <- c("ref", paste0(
+          dF(exp(mod$coefficients[1]), dig = 2),
+          " (", dF(exp(mod$coefficients[1] - global_z05 * se), dig = 2),
+          "-", dF(exp(mod$coefficients[1] + global_z05 * se), dig = 2), "), ",
+          dF((1 - pnorm(abs(mod$coeff[1] / se))) * 2, dig = 3, p = TRUE)
+        ))
+      }
+      if (is.null(time)) {
+        mod <- coxme(formula(paste0("Surv(start, stop,", event, "=='Yes') ~ ddr_digoxin + (1 | par)")),
+          data = tmpdata
+        )
+
+        se <- sqrt(vcov(mod)[1])
+
+        out[tmpnrow, 2] <- "Adj HR (95% CI), p-value"
+        out[tmpnrow, 3:4] <- c("ref", paste0(
+          dF(exp(mod$coefficients[1]), dig = 2),
+          " (", dF(exp(mod$coefficients[1] - global_z05 * se), dig = 2),
+          "-", dF(exp(mod$coefficients[1] + global_z05 * se), dig = 2), "), ",
+          dF((1 - pnorm(abs(mod$coeff[1] / se))) * 2, dig = 3, p = TRUE)
+        ))
+      }
+    }
+    if (fg) {
+      mod <- summary(z <- crr(tmpdata %>% pull(!!sym(time)),
+        tmpdata %>% pull(!!sym(event)),
+        tmpdata %>% pull(ddr_digoxinnum),
+        failcode = 1, cencode = 0
+      ))
+
+      # P-value
+      p <- dF(mod$coef[, 5], dig = 3, p = TRUE)
+
+      out[tmpnrow, 2] <- "Adj HR (95% CI), p-value"
+
+      out[tmpnrow, 3:4] <- c("ref", paste0(
+        dF(mod$conf.int[, 1], dig = 2),
+        " (", dF(mod$conf.int[, 3], dig = 2),
+        "-", dF(mod$conf.int[, 4], dig = 2), ") ",
+        p
+      ))
+    }
+  }
+  return(out)
+}
+
+survmy2 <- function(time2, event2, eventname2,
+                    crossoverdata,
+                    event_comp) {
+  out1 <- survmy(
+    time = time2, event = event2,
+    eventname = eventname2,
+    data = pdata
+  )
+  out2 <- survmy(
+    time = time2, event = event2,
+    eventname = eventname2,
+    data = matchp, matched = TRUE
+  )
+  out3 <- survmy(
+    time = NULL, event = event2,
+    eventname = paste0("Consistency-", eventname2, ", time dependent digoxin"),
+    data = crossoverdata, matched = TRUE, sensanalysis = TRUE
+  )
+  if (!is.null(event_comp)) {
+    out4 <- survmy(
+      time = time2, event = event_comp,
+      eventname = paste0("Consistency-", eventname2, ", death as competing event"),
+      data = matchp, matched = TRUE, sensanalysis = TRUE,
+      fg = TRUE
+    )
+  }
+
+  if (!is.null(event_comp)) {
+    match <- rbind(
+      out2, out3, out4
+    )
+  } else {
+    match <- rbind(
+      out2, out3
+    )
+  }
+
+  outall <- full_join(out1, match, by = c("Outcome", "Model"))
+}
+
+deathhfhosp <- survmy2(
+  time2 = "sos_outtime_hosphf",
+  event2 = "sos_out_deathhosphf",
+  eventname2 = "First HF hosp/death",
+  crossoverdata = matchpcross_deathhosphf,
+  event_comp = NULL
+)
+
+death <- survmy2(
+  time2 = "sos_outtime_death",
+  event2 = "sos_out_death",
+  eventname2 = "Death",
+  crossoverdata = matchpcross_death,
+  event_comp = NULL
+)
+
+hfhosp <- survmy2(
+  time2 = "sos_outtime_hosphf",
+  event2 = "sos_out_hosphf",
+  eventname2 = "First HF hosp",
+  crossoverdata = matchpcross_hosphf,
+  event_comp = "sos_out_hosphf_comp"
+)
+
+outall <- rbind(
+  deathhfhosp,
+  death,
+  hfhosp
+)
+
+
+colnames(outall) <- c("Outcome", "Model", rep(c("Digoxin No", "Digoxin Yes"), 2))
+write.xlsx(outall, paste0("./output/tabs/outtab_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+myHeader <- c(" " = 1, " " = 1, "All" = 2, "Matched" = 2)
+names(myHeader) <- c(" ", " ", "All", "Matched")
+
+
+footnote(mykable(outall,
+  fontsize = 5,
+  caption = "Outcomes",
+  longtable = TRUE
+) %>%
+  landscape() %>%
+  add_header_above(myHeader),
+general = c(
+  "Incidence =  no events, sum py, rate/1000py (95% CI).",
+  "Adj (ind vars) = Adjusted for the individual variables indicated in the baseline table.",
+  "Adj (ps) = Adjusted for the propensity scrore as a covariate using a cubic spline with 4 df in All data./Including the matched pairs as a frailty term in the Matched data."
+)
+)
+```
