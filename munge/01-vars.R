@@ -51,6 +51,7 @@ tabvars <- c(
 
   # comorbs
   "shf_smoking_cat",
+  "shf_sos_com_diabetes",
   "shf_sos_com_hypertension",
   "shf_sos_com_ihd",
   "sos_com_peripheralartery",

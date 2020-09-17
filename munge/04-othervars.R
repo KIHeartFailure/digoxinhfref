@@ -95,6 +95,12 @@ pdata <- pdata %>%
       TRUE ~ "No"
     ),
 
+    shf_sos_com_diabetes = case_when(
+      shf_diabetes == "Yes" |
+        sos_com_diabetes == "Yes" ~ "Yes",
+      TRUE ~ "No"
+    ),
+    
     # Anemia
     shf_anemia = case_when(
       is.na(shf_hb) ~ NA_character_,
