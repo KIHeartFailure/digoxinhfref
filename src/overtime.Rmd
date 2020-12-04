@@ -1,4 +1,4 @@
-```{r overtime}
+```{r overtime, fig.cap="Digoxin use overtime"}
 
 overtime <- overtime %>%
   filter(AR >= 2006, AR <= 2018) %>%

@@ -10,6 +10,8 @@ ProjectTemplate::reload.project(
   munging = TRUE
 )
 
+ProjectTemplate::cache("meta.variables.Sheet.1")
+
 ProjectTemplate::cache("flow")
 ProjectTemplate::cache("pdata")
 ProjectTemplate::cache("imp")
