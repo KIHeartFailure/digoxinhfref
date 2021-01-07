@@ -187,3 +187,7 @@ pdata <- left_join(
 
 pdata <- pdata %>%
   mutate_if(is_character, factor)
+
+
+pdata_af <- pdata %>% filter(shf_sos_com_af == "Yes")
+pdata_noaf <- pdata %>% filter(shf_sos_com_af == "No")

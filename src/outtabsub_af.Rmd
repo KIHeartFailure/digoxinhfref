@@ -1,5 +1,5 @@
-```{r outtabsub, cache=cacheon}
-survmysub <- function(time, event, xvar, xvarname) {
+```{r outtabsubfuncaf, cache=cacheon}
+survmysub <- function(time, event, xvar, xvarname, matchdata) {
   levs <- levels(pdata %>% pull(!!sym(xvar)))
 
   out <- data.frame(matrix(NA, ncol = 6, nrow = length(levs) + 1))
@@ -14,7 +14,7 @@ survmysub <- function(time, event, xvar, xvarname) {
       "Surv(", time, ",",
       event, "=='Yes') ~ ddr_digoxin * relevel(", xvar, ", ref = '", levs[i], "') + (1 | par)"
     )),
-    data = matchp
+    data = matchdata
     )
 
     se <- sqrt(vcov(mod)[1])
@@ -38,12 +38,13 @@ survmysub <- function(time, event, xvar, xvarname) {
   return(out)
 }
 
-survmysub2 <- function(time2, event2) {
+survmysub2 <- function(time2, event2, matchdata2) {
   forestdata <- survmysub(
     time = time2,
     event = event2,
     xvar = "shf_sex",
-    xvarname = "Gender"
+    xvarname = "Gender",
+    matchdata = matchdata2
   )
 
   forestdata <- rbind(
@@ -52,7 +53,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_age_cat",
-      xvarname = "Age (years)"
+      xvarname = "Age (years)",
+      matchdata = matchdata2
     )
   )
 
@@ -62,7 +64,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_location",
-      xvarname = "Location"
+      xvarname = "Location",
+      matchdata = matchdata2
     )
   )
 
@@ -72,7 +75,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_durationhf",
-      xvarname = "Duration of HF (mo)"
+      xvarname = "Duration of HF (mo)",
+      matchdata = matchdata2
     )
   )
 
@@ -82,7 +86,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_nyha_cat",
-      xvarname = "NYHA class"
+      xvarname = "NYHA class",
+      matchdata = matchdata2
     )
   )
 
@@ -92,7 +97,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_ef",
-      xvarname = "EF (%)"
+      xvarname = "EF (%)",
+      matchdata = matchdata2
     )
   )
 
@@ -102,7 +108,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_heartrate_cat",
-      xvarname = "Heart rate (beats/min)"
+      xvarname = "Heart rate (beats/min)",
+      matchdata = matchdata2
     )
   )
 
@@ -112,7 +119,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_ckd",
-      xvarname = "CKD"
+      xvarname = "CKD",
+      matchdata = matchdata2
     )
   )
 
@@ -122,17 +130,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_bmi_cat",
-      xvarname = "BMI (kg/m2)"
-    )
-  )
-
-  forestdata <- rbind(
-    forestdata,
-    survmysub(
-      time = time2,
-      event = event2,
-      xvar = "shf_sos_com_af",
-      xvarname = "AF"
+      xvarname = "BMI (kg/m2)",
+      matchdata = matchdata2
     )
   )
 
@@ -142,7 +141,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_sos_com_ihd",
-      xvarname = "IHD"
+      xvarname = "IHD",
+      matchdata = matchdata2
     )
   )
 
@@ -152,7 +152,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_rasarni",
-      xvarname = "RASi/ARNi"
+      xvarname = "RASi/ARNi",
+      matchdata = matchdata2
     )
   )
 
@@ -162,7 +163,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_bbl",
-      xvarname = "Beta-blocker"
+      xvarname = "Beta-blocker",
+      matchdata = matchdata2
     )
   )
 
@@ -172,7 +174,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_mra",
-      xvarname = "MRA"
+      xvarname = "MRA",
+      matchdata = matchdata2
     )
   )
 
@@ -182,7 +185,8 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_device_cat",
-      xvarname = "Device therapy"
+      xvarname = "Device therapy",
+      matchdata = matchdata2
     )
   )
 
@@ -192,14 +196,15 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_map_cat",
-      xvarname = "MAP"
+      xvarname = "MAP",
+      matchdata = matchdata2
     )
   )
 }
 ```
 
-```{r outtabsubplot, cache=cacheon, dependson="outtabsubfuncaf"}
-plotforest <- function(forestdata) {
+```{r outtabsubfuncafplot, cache=cacheon, dependson="outtabsubfuncaf"}
+plotforest <- function(forestdata, xlabadj = 0.07) {
   cextext <- 0.9
 
   minmy <- round(exp(min(forestdata$lci, na.rm = T)), 1)
@@ -268,7 +273,7 @@ plotforest <- function(forestdata) {
   )
 
   axis(1,
-    at = 0.1, cex.axis = cextext,
+    at = xlabadj, cex.axis = cextext,
     labels = "Digoxin  No Digoxin", line = 1, tick = FALSE
   )
   axis(1,
@@ -278,35 +283,75 @@ plotforest <- function(forestdata) {
 }
 ```
 
-```{r outtabsubdeathhfhosp, cache=cacheon, dependson="outtabsub"}
+```{r outtabsubdeathhfhospaf, cache=cacheon, dependson="outtabsubfuncaf"}
 hfhospdeathforest <- survmysub2(
   time2 = "sos_outtime_hosphf",
-  event2 = "sos_out_deathhosphf"
+  event2 = "sos_out_deathhosphf",
+  matchdata = matchp_af
 )
 ```
 
-```{r forestdeathhfhosp, cache=cacheon, dependson="outtabsubplot", fig.cap="Subgroups First HF hospitalization/death", fig.width=5, fig.height=10}
+```{r forestdeathhfhospaf, cache=cacheon, dependson="outtabsubfuncafplot", fig.cap="Subgroups First HF hospitalization/death - Patients with AF", fig.width=5, fig.height=10}
 plotforest(hfhospdeathforest)
 ```
 
-```{r outtabsubdeath, cache=cacheon, dependson="outtabsub"}
+```{r outtabsubdeathaf, cache=cacheon, dependson="outtabsubfuncaf"}
 deathforest <- survmysub2(
   time2 = "sos_outtime_death",
-  event2 = "sos_out_death"
+  event2 = "sos_out_death",
+  matchdata = matchp_af
 )
 ```
 
-```{r forestdeath, cache=cacheon, dependson="outtabsubplot", fig.cap="Subgroups Death", fig.width=5, fig.height=10}
-plotforest(deathforest)
+```{r forestdeathaf, cache=cacheon, dependson="outtabsubfuncafplot", fig.cap="Subgroups Death - Patients with AF", fig.width=5, fig.height=10}
+plotforest(deathforest, xlabadj = 0.1)
 ```
 
-```{r outtabsubhfhosp, cache=cacheon, dependson="outtabsub"}
+```{r outtabsubhfhospaf, cache=cacheon, dependson="outtabsubfuncaf"}
 hfhospforest <- survmysub2(
   time2 = "sos_outtime_hosphf",
-  event2 = "sos_out_hosphf"
+  event2 = "sos_out_hosphf",
+  matchdata = matchp_af
 )
 ```
 
-```{r foresthfhosp, cache=cacheon, dependson="outtabsubplot", fig.cap="Subgroups First HF hospitalization", fig.width=5, fig.height=10}
-plotforest(hfhospforest)
+```{r foresthfhospaf, cache=cacheon, dependson="outtabsubfuncafplot", fig.cap="Subgroups First HF hospitalization - Patients with AF", fig.width=5, fig.height=10}
+plotforest(hfhospforest, xlabadj = 0.1)
 ```
+
+```{r outtabsubdeathhfhospnoaf, cache=cacheon, dependson="outtabsubfuncaf"}
+hfhospdeathforest <- survmysub2(
+  time2 = "sos_outtime_hosphf",
+  event2 = "sos_out_deathhosphf",
+  matchdata = matchp_noaf
+)
+```
+
+```{r forestdeathhfhospnoaf, cache=cacheon, dependson="outtabsubfuncafplot", fig.cap="Subgroups First HF hospitalization/death - Patients without AF", fig.width=5, fig.height=10}
+plotforest(hfhospdeathforest, xlabadj = 0.19)
+```
+
+```{r outtabsubdeathnoaf, cache=cacheon, dependson="outtabsubfuncaf"}
+deathforest <- survmysub2(
+  time2 = "sos_outtime_death",
+  event2 = "sos_out_death",
+  matchdata = matchp_noaf
+)
+```
+
+```{r forestdeathnoaf, cache=cacheon, dependson="outtabsubfuncafplot", fig.cap="Subgroups Death - Patients without AF", fig.width=5, fig.height=10}
+plotforest(deathforest, xlabadj = 0.18)
+```
+
+```{r outtabsubhfhospnoaf, cache=cacheon, dependson="outtabsubfuncaf"}
+hfhospforest <- survmysub2(
+  time2 = "sos_outtime_hosphf",
+  event2 = "sos_out_hosphf",
+  matchdata = matchp_noaf
+)
+```
+
+```{r foresthfhospnoaf, cache=cacheon, dependson="outtabsubfuncafplot", fig.cap="Subgroups First HF hospitalization - Patients without AF", fig.width=5, fig.height=10}
+plotforest(hfhospforest, xlabadj = 0.25)
+```
+

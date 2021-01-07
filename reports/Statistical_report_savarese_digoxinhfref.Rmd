@@ -79,6 +79,8 @@ The median age (IQR) is `r pdata %>% summarise(med = dF(median(shf_age), dig = 1
 mykable(metalm, caption = "Treatments from DDR")
 ```
 
+In all analyses digoxin from the DDR is used. 
+
 # Statistical analysis 
 
 ## General
@@ -220,6 +222,37 @@ in the ps matched cohort (digoxin according to ITT).
 Possible outliers were visually inspected by plotting the dfbetas. 
 => `r paste0(stratavars, collapse = ", ")` were deemed not to have proportional
 hazards and therefore stratified for in the cox regressions.  
+
+\clearpage
+\newpage
+
+## By AF
+
+Imputation, propensity score matching and the outcome analyses was also performed 
+separately in patients with and without AF.
+
+### Baseline characteristics
+
+```{r, child = "../src/tab1_af.Rmd"}
+
+```
+
+### Association digoxin vs outcomes
+
+```{r, child = "../src/outtab_af.Rmd"}
+
+```
+
+#### Subgroups
+
+Performed using interaction effects on the patients in the matched cohort and 
+presented in a Forest plot. 
+Note that there is missing data for some of the variables so the matching 
+(and thereby the adjustment) may therefore not be complete. 
+
+```{r, child = "../src/outtabsub_af.Rmd"}
+
+```
 
 \clearpage
 \newpage

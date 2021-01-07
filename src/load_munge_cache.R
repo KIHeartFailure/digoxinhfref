@@ -14,9 +14,17 @@ ProjectTemplate::cache("meta.variables.Sheet.1")
 
 ProjectTemplate::cache("flow")
 ProjectTemplate::cache("pdata")
+ProjectTemplate::cache("pdata_af")
+ProjectTemplate::cache("pdata_noaf")
+
 ProjectTemplate::cache("imp")
+ProjectTemplate::cache("imp_af")
+ProjectTemplate::cache("imp_noaf")
+
 ProjectTemplate::cache("matchp")
 ProjectTemplate::cache("matchingn")
+ProjectTemplate::cache("matchp_af")
+ProjectTemplate::cache("matchp_noaf")
 
 ProjectTemplate::cache("matchpcross_deathhosphf")
 ProjectTemplate::cache("matchpcross_death")

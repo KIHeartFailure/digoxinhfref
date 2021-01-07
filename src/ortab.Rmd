@@ -229,7 +229,7 @@ orforest <- orforest %>%
 # exp(min(as.numeric(orforest$lci)))
 # exp(max(as.numeric(orforest$uci)))
 
-cextext <- 0.5
+cextext <- 0.7
 
 # c(bottom, left, top, right)
 par(mar = c(4, 8, 1, 4) + 0.2)

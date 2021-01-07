@@ -1,0 +1,104 @@
+```{r tab1funcaf, cache=cacheon}
+tab1af <- function(data, matchdata, title) {
+  tab1_tmp <- CreateTableOne(
+    vars = tabvars,
+    strata = "ddr_digoxin",
+    data = data
+  )
+  tab1 <- print(tab1_tmp,
+    varLabels = TRUE, missing = TRUE, printToggle = FALSE, nonnormal = tabvars,
+    test = TRUE,
+    catDigits = 1, contDigits = 1,
+    explain = FALSE,
+    smd = TRUE
+  )
+
+  tab1m_tmp <- CreateTableOne(
+    vars = tabvars,
+    strata = "ddr_digoxin",
+    data = matchdata
+  )
+  tab1m <- print(tab1m_tmp,
+    varLabels = TRUE, missing = TRUE, printToggle = FALSE, nonnormal = tabvars,
+    test = TRUE,
+    catDigits = 1, contDigits = 1,
+    explain = FALSE,
+    smd = TRUE
+  )
+
+  tab1out <- as_tibble(cbind(
+    var = rownames(tab1), tab1[, 6],
+    tab1[, c(1:2, 5, 3)], tab1m[, 6], tab1m[, c(1:2, 5, 3)]
+  ),
+  .name_repair = "unique"
+  )
+  # tab1out <- as_tibble(cbind(rownames(tab1), tab1[, 6], tab1[, c(1:2, 5, 3)]))
+
+  tab1out <- tab1out %>%
+    mutate(
+      tmp_varsforfoot = var,
+      var = sub("  ", ". ", var),
+      var = sanitizeTextFunc(var)
+    )
+
+
+  ## add footnote about ras (arb, aceir, arni)
+
+  tab1out$var <- ifelse(stri_extract_first_words(tab1out$tmp_varsforfoot) == "shf_ras",
+    paste0(tab1out$var, footnote_marker_symbol(1)), tab1out$var
+  )
+
+  ## add fotnote stating which variables are used in multiple imputation
+
+  tab1out$var <- ifelse(stri_extract_first_words(tab1out$tmp_varsforfoot) %in% modvars,
+    paste0(tab1out$var, footnote_marker_symbol(2)), tab1out$var
+  )
+
+  tab1out <- tab1out %>% select(-tmp_varsforfoot)
+
+  # remove space between ( %
+  tab1out <- tab1out %>%
+    mutate(across(everything(), str_replace_all, fixed("( "), "("))
+
+  ## white space removed in kable function.
+  ## fix in order to use escape = TRUE
+  colnames(tab1out) <- sanitizeTextFunc(c(
+    "Variables", rep(c("Missing (%)", "Digoxin No", "Digoxin Yes", "SMD", "p-value"), 2)
+  ))
+
+  write.xlsx(tab1out, paste0("./output/tabs/tab1_", title, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+
+  myHeader <- c(" " = 1, "All" = 5, "Matched" = 5)
+  names(myHeader) <- c(" ", "All", "Matched")
+
+
+  footnote(
+    mykable(tab1out,
+      fontsize = 5,
+      caption = paste0("Baseline characteristics - Patients ", title),
+      longtable = TRUE,
+      escape = FALSE
+    ) %>%
+      landscape() %>%
+      add_header_above(myHeader),
+    general = c(
+      "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Mann-Whitney U test.",
+      "SMD = Standardized mean difference."
+    ),
+    symbol = c(
+      "arb/acei/arni",
+      "Included in the multiple imputation model (althought not necessarily imputed if there is no missing data) and logistic/cox models."
+    )
+  )
+}
+```
+
+```{r tab1af, cache=cacheon, dependson="tab1funcaf"}
+tab1af(data = pdata_af, matchdata = matchp_af, title = "with AF")
+```
+
+
+```{r tab1noaf, cache=cacheon, dependson="tab1funcaf"}
+tab1af(data = pdata_noaf, matchdata = matchp_noaf, title = "without AF")
+```
