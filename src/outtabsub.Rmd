@@ -12,7 +12,7 @@ survmysub <- function(time, event, xvar, xvarname) {
 
     mod <- coxme(formula(paste0(
       "Surv(", time, ",",
-      event, "=='Yes') ~ shf_digoxin * relevel(", xvar, ", ref = '", levs[i], "') + (1 | par)"
+      event, "=='Yes') ~ ddr_digoxin * relevel(", xvar, ", ref = '", levs[i], "') + (1 | par)"
     )),
     data = matchp
     )
@@ -196,7 +196,9 @@ survmysub2 <- function(time2, event2) {
     )
   )
 }
+```
 
+```{r outtabsubplot, cache=cacheon, dependson="outtabsubfuncaf"}
 plotforest <- function(forestdata) {
   cextext <- 0.9
 
@@ -236,11 +238,15 @@ plotforest <- function(forestdata) {
 
   axismy <- seq(minmy, maxmy, 0.1)
   axismy2 <- axismy
-  axismy2[!axismy %in% c(minmy, 1, maxmy)] <- NA
+  axismy2[!axismy %in% c(minmy, maxmy)] <- NA
 
   axis(1,
     cex.axis = cextext, at = log(axismy),
     labels = axismy2
+  )
+  axis(1,
+    cex.axis = cextext, at = log(1),
+    labels = 1
   )
 
   axis(2,
@@ -262,7 +268,7 @@ plotforest <- function(forestdata) {
   )
 
   axis(1,
-    at = 0.05, cex.axis = cextext,
+    at = 0.1, cex.axis = cextext,
     labels = "Digoxin  No Digoxin", line = 1, tick = FALSE
   )
   axis(1,
@@ -272,29 +278,35 @@ plotforest <- function(forestdata) {
 }
 ```
 
-```{r outtabsubdeathhfhosp, cache=cacheon, dependson="outtabsub", fig.cap="Subgroups First HF hospitalization/death", fig.width=5, fig.height=10}
+```{r outtabsubdeathhfhosp, cache=cacheon, dependson="outtabsub"}
 hfhospdeathforest <- survmysub2(
   time2 = "sos_outtime_hosphf",
   event2 = "sos_out_deathhosphf"
 )
+```
 
+```{r outtabsubdeathhfhosp2, cache=cacheon, dependson="outtabsubplot", fig.cap="Subgroups First HF hospitalization/death", fig.width=5, fig.height=10}
 plotforest(hfhospdeathforest)
 ```
 
-```{r outtabsubdeath, cache=cacheon, dependson="outtabsub", fig.cap="Subgroups Death", fig.width=5, fig.height=10}
+```{r outtabsubdeath, cache=cacheon, dependson="outtabsub"}
 deathforest <- survmysub2(
   time2 = "sos_outtime_death",
   event2 = "sos_out_death"
 )
+```
 
+```{r outtabsubdeath2, cache=cacheon, dependson="outtabsubplot", fig.cap="Subgroups Death", fig.width=5, fig.height=10}
 plotforest(deathforest)
 ```
 
-```{r outtabsubhfhosp, cache=cacheon, dependson="outtabsub", fig.cap="Subgroups First HF hospitalization", fig.width=5, fig.height=10}
+```{r outtabsubhfhosp, cache=cacheon, dependson="outtabsub"}
 hfhospforest <- survmysub2(
   time2 = "sos_outtime_hosphf",
   event2 = "sos_out_hosphf"
 )
+```
 
+```{r outtabsubhfhosp2, cache=cacheon, dependson="outtabsubplot", fig.cap="Subgroups First HF hospitalization", fig.width=5, fig.height=10}
 plotforest(hfhospforest)
 ```
