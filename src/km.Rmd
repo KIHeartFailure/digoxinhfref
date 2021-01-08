@@ -1,26 +1,36 @@
 ```{r km, cache=cacheon}
-kmfunc <- function(time, event, eventname, yvalsplus = rep(0, 4)) {
+kmfunc <- function(time, event, eventname, yvalsplus = rep(0, 3)) {
 
   # unadj
   fitu <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
     data = pdata
   )
-  ## logrank
-  sdu <- survdiff(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
+  ## cox
+  sdu <- summary(coxph(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
     data = pdata
+  ))
+  pu <- paste0(
+    "Crude HR (95% CI), p: ", dF(sdu$conf.int[1], 2), " (",
+    dF(sdu$conf.int[3], 2), "-",
+    dF(sdu$conf.int[4], 2), "), ",
+    dF(sdu$coefficients[5], 3, p = TRUE)
   )
-  pu <- dF(pchisq(sdu$chisq, length(sdu$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
 
   # adj match
   fitm <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
     data = matchp
   )
-  ## logrank
-  sdm <- survdiff(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
+  ## cox
+  sdm <- coxme(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin + (1 | par)")),
     data = matchp
   )
-  pm <- dF(pchisq(sdm$chisq, length(sdm$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
-
+  se <- sqrt(vcov(sdm)[1])
+  pm <- paste0(
+    "Adjusted HR (95% CI), p: ", dF(exp(sdm$coefficients[1]), dig = 2),
+    " (", dF(exp(sdm$coefficients[1] - global_z05 * se), dig = 2),
+    "-", dF(exp(sdm$coefficients[1] + global_z05 * se), dig = 2), "), ",
+    dF((1 - pnorm(abs(sdm$coeff[1] / se))) * 2, dig = 3, p = TRUE)
+  )
 
   # c(bottom, left, top, right)
   par(mar = c(4, 6, 1, 7.5) + 0.1)
@@ -56,35 +66,40 @@ kmfunc <- function(time, event, eventname, yvalsplus = rep(0, 4)) {
   axis(2, seq(0, 1, 0.25), seq(0, 100, 25), las = 2)
   axis(1, at = seq(0, 7, 1) * 365, seq(0, 7, 1))
 
+  yposu <- 1 - summary(fitu, 365 * 7)$surv[1]
+  yposm <- 1 - summary(fitm, 365 * 7)$surv
+
   ycord <- data.frame(
-    y = c(plotm$y, plotu$y[2]),
-    name = c("No digoxin matched", "Digoxin", "No digoxin all")
+    y = c(yposu, yposm),
+    name = c("No digoxin all", "No digoxin matched", "Digoxin")
   )
-  ycord <- ycord %>%
-    arrange(y)
 
   mtext(
-    side = 4, line = .2, at = ycord$y - yvalsplus[1] + yvalsplus[2:4],
+    side = 4, line = .2, at = ycord$y + yvalsplus,
     ycord$name,
     las = 1
   )
 
-  text(3 * 365, 0.13, paste0("Log-rank crude p = ", pu), pos = 4)
-  text(3 * 365, 0.09, paste0("Log-rank adjusted p = ", pm), pos = 4)
+  text(0.5 * 365, 0.90, pu, pos = 4)
+  text(0.5 * 365, 0.85, pm, pos = 4)
 }
 ```
 
 ```{r kmdeathhfhosp, fig.cap="1-KM First HF hospitalization/death", cache=cacheon, dependson="km"}
 kmfunc("sos_outtime_hosphf", "sos_out_deathhosphf", "First HF hospitalization/death (%)",
-       yvalsplus = c(0.135, -0.03, 0, 0.02))
+  yvalsplus = c(-0.008, 0, 0)
+  # ("No digoxin all", "No digoxin matched", "Digoxin")
+)
 ```
 
 ```{r kmdeath, fig.cap="1-KM Death", cache=cacheon, dependson="km"}
 kmfunc("sos_outtime_death", "sos_out_death", "Death (%)",
-       yvalsplus = c(0.21, -0.02, 0, 0.02))
+  yvalsplus = c(0, 0.008, -0.008)
+)
 ```
 
 ```{r kmhfhosp, fig.cap="1-KM First HF hospitalization", cache=cacheon, dependson="km"}
 kmfunc("sos_outtime_hosphf", "sos_out_hosphf", "First HF hospitalization (%)",
-       yvalsplus = c(0.115, -0.03, 0, 0.02))
+  yvalsplus = c(0, 0, 0)
+)
 ```
