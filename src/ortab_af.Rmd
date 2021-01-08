@@ -1,0 +1,527 @@
+```{r ortabaffunc, cache=cacheon}
+
+myor <- function(xvar, impdata) {
+  
+  nval <- ifelse(is.factor(pdata %>% pull(!!sym(xvar))), nlevels(pdata %>% pull(!!sym(xvar))), 2)
+
+  cmod <- with(impdata, glm(formula(paste0("ddr_digoxin == 'Yes' ~ ", xvar)),
+    family = binomial(link = "logit")
+  ))
+
+  scmod <- summary(pool(cmod))
+
+  p <- dF(scmod$p.value[2:nval], dig = 3, p = TRUE)
+
+  ortmp <- cbind(
+    as.character(scmod$term[2:nval]), paste0(
+      dF(exp(scmod$estimate[2:nval]), dig = 2),
+      " (", dF(exp(scmod$estimate[2:nval] - global_z05 * scmod$std.error[2:nval]), dig = 2),
+      "-", dF(exp(scmod$estimate[2:nval] + global_z05 * scmod$std.error[2:nval]), dig = 2), ")"
+    ),
+    p
+  )
+
+  if (nval > 2) {
+    poverall <- with(impdata, car::Anova(glm(formula(paste0("ddr_digoxin == 'Yes' ~ ", xvar)),
+      family = binomial(link = "logit")
+    ),
+    type = "III", test.statistic = "Wald"
+    ))
+
+    chis2 <- c(
+      poverall$analyses[[1]]$Chisq[2],
+      poverall$analyses[[2]]$Chisq[2],
+      poverall$analyses[[3]]$Chisq[2],
+      poverall$analyses[[4]]$Chisq[2],
+      poverall$analyses[[5]]$Chisq[2],
+      poverall$analyses[[6]]$Chisq[2],
+      poverall$analyses[[7]]$Chisq[2],
+      poverall$analyses[[8]]$Chisq[2],
+      poverall$analyses[[9]]$Chisq[2],
+      poverall$analyses[[10]]$Chisq[2]
+    )
+
+    dk.comb <- dF(miceadds::micombine.chisquare(
+      dk = chis2, df = poverall$analyses[[1]]$Df[2],
+      display = FALSE
+    )[2], dig = 3, p = TRUE)
+
+    ortmp <- rbind(
+      cbind(xvar, NA, dk.comb),
+      ortmp
+    )
+  }
+
+  if (exists("ortab")) {
+    ortab <<- rbind(ortab, ortmp)
+  } else {
+    ortab <<- ortmp
+  }
+}
+```
+
+```{r ortabaf, cache=cacheon, dependson="ortabaffunc"}
+
+modvarsaf <- modvars[modvars != "shf_sos_com_af"]
+
+if (exists("ortab")) rm(ortab, envir = .GlobalEnv)
+for (i in seq_along(modvarsaf)) {
+  myor(modvarsaf[i], impdata = imp_af)
+}
+colnames(ortab) <- c("Variable", "CrudeOR", "p")
+
+cmodadj <- with(imp_af, glm(formula(paste0(
+  "ddr_digoxin == 'Yes' ~ ",
+  paste(modvarsaf, collapse = " + ")
+)),
+family = binomial(link = "logit")
+))
+
+
+scmodadj <- summary(pool(cmodadj))
+
+nval <- length(scmodadj$estimate)
+
+padj <- dF(scmodadj$p.value[2:nval], dig = 3, p = TRUE)
+
+ortabadj <- cbind(
+  as.character(scmodadj$term[2:nval]),
+  paste0(
+    dF(exp(scmodadj$estimate[2:nval]), dig = 2),
+    " (", dF(exp(scmodadj$estimate[2:nval] - global_z05 * scmodadj$std.error[2:nval]), dig = 2),
+    "-", dF(exp(scmodadj$estimate[2:nval] + global_z05 * scmodadj$std.error[2:nval]), dig = 2), ")"
+  ),
+  padj,
+  scmodadj$estimate[2:nval],
+  scmodadj$estimate[2:nval] - global_z05 * scmodadj$std.error[2:nval],
+  scmodadj$estimate[2:nval] + global_z05 * scmodadj$std.error[2:nval]
+)
+
+
+colnames(ortabadj) <- c("Variable", "AdjustedOR", "p", "logor", "lci", "uci")
+
+poveralladj <- with(imp_af, car::Anova(glm(formula(paste0(
+  "ddr_digoxin == 'Yes' ~ ",
+  paste(modvarsaf, collapse = " + ")
+)),
+family = binomial(link = "logit")
+), type = "III", test.statistic = "Wald"))
+
+lev3vars <- modvarsaf[pdata_af %>%
+  select(!!!syms(modvarsaf)) %>%
+  sapply(nlevels) > 2]
+
+poverall <- cbind(lev3vars, rep(NA, length(lev3vars)), rep(NA, length(lev3vars)),
+                  rep(NA, length(lev3vars)),
+                  rep(NA, length(lev3vars)), 
+                  rep(NA, length(lev3vars)))
+for (i in seq_along(lev3vars)) {
+  chis2 <- c(
+    poveralladj$analyses[[1]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[2]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[3]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[4]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[5]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[6]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[7]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[8]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[9]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[10]][lev3vars[i], "Chisq"]
+  )
+
+  poverall[i, 3] <- dF(miceadds::micombine.chisquare(
+    dk = chis2, df = poveralladj$analyses[[1]][i, "Df"],
+    display = FALSE
+  )[2], dig = 3, p = TRUE)
+}
+
+ortabadj <- rbind(ortabadj, poverall)
+
+ortaball_af <- full_join(data.frame(ortab), data.frame(ortabadj), by = "Variable")
+
+ortaballprint_af <- ortaball_af %>%
+  select(1:5)
+
+write.xlsx(ortaballprint_af, paste0("./output/tabs/ortab_af_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+ortaballprint_af <- ortaballprint_af %>% mutate(Variable = sanitizeTextFunc(Variable))
+
+colnames(ortaballprint_af) <- sanitizeTextFunc(c("Variable", rep(c("OR (95% CI)", "p-value"), 2)))
+
+myHeader <- c(" " = 1, "Crude" = 2, "Adjusted" = 2)
+names(myHeader) <- c(" ", "Crude", "Adjusted")
+
+
+mykable(ortaballprint_af,
+  fontsize = 6,
+  caption = paste0("Odds Ratios - associations with digoxin - Patients with AF"),
+  longtable = TRUE,
+  escape = FALSE
+) %>%
+  add_header_above(myHeader)
+```
+
+```{r orforestaf, cache=cacheon, dependson="ortabaf", fig.cap="Association with use of digoxin - Patients with AF"}
+
+orforest <- ortaball_af %>% select(Variable, 
+                                logor,
+                                lci,
+                                uci,
+                                p.y
+                                ) %>%
+  rename(var = Variable) %>%
+  filter(!is.na(logor))
+
+orforest <- orforest %>%
+  # remove = Yes
+  mutate(across(everything(), str_replace_all, fixed("Yes"), "")) %>%
+  # to get labs and units in place
+  mutate(
+    # if recoding or categorizing will still get org label
+    var_tmp = str_replace_all(var, "(_cat2|_cat)", ""),
+    # if shf/sos combination  will still get org label
+    var_tmp = str_replace_all(var_tmp, "shf_sos_com_", "sos_com_"),
+  )
+
+orforest <- left_join(orforest,
+  meta.variables.Sheet.1 %>%
+    select(variable, label, unit),
+  by = c("var_tmp" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    )
+  )
+
+orforest <- orforest %>%
+  mutate(
+    modnameforest = case_when(
+      Variable == "shf_nyhaIV" ~ "NYHA IV vs I",
+      Variable == "shf_nyhaIII" ~ "NYHA III vs I",
+      Variable == "shf_nyhaII" ~ "NYHA II vs I",
+      Variable == "shf_anemia" ~ "Anemia",
+      Variable %in% c("shf_ntpropbnpAbove medium within EF", "shf_ntpropbnpAbove medium") ~ "NTproBNP Above vs below medium",
+      Variable == "shf_potassiumhypokalemia" ~ "Hypokalemia",
+      Variable == "scb_famtypeLiving alone" ~ "Living alone",
+      Variable == "shf_deviceCRT/ICD" ~ "CRT/ICD",
+      Variable == "shf_durationhf>6mo" ~ "Duration HF > 6mo vs < 6mo",
+      Variable == "shf_age>=75" ~ "Age >=75 vs <75",
+      Variable == "shf_potassiumhyperkalemia" ~ "Hyperkalemia",
+      Variable == "shf_smokingCurrent" ~ "Smoker",
+      Variable == "scb_educationUniversity" ~ "University vs Compulsory school",
+      Variable == "scb_educationSecondary school" ~ "Secondary vs Compulsory school",
+      Variable == "shf_bmi>=30" ~ "BMI >=30 vs <30",
+      Variable == "shf_followuplocationOther" ~ "Follow-up Other vs Hospital",
+      Variable == "shf_followuplocationPrimary care" ~ "Follow-up Primary care vs Hospital",
+      Variable == "shf_ef<30" ~ "EF <30 vs 30-39",
+      Variable == "shf_sexMale" ~ "Male vs Female",
+      Variable == "scb_dispincomeAbove medium within year" ~ "Income Above vs below medium",
+      Variable == "shf_map>90" ~ "MAP >90 vs <=90",
+      Variable == "shf_heartrate>70" ~ "Heart rate >70 vs <=70",
+      Variable == "shf_locationOut-patient" ~ "Out vs In-patient",
+      Variable == "shf_indexyear011-2015" ~ "Year 2011-15 vs 2005-10",
+      Variable == "shf_indexyear016-2018" ~ "Year 2016-18 vs 2005-10",
+      Variable == "shf_ckd>=60" ~ "eGFR >=60 vs 30-60",
+      Variable == "shf_ckd<30" ~ "eGFR <30 vs 30-60",
+      TRUE ~ Variable
+    ),
+    logor = as.numeric(logor)
+  ) %>%
+  arrange(logor)
+
+# exp(min(as.numeric(orforest$lci)))
+# exp(max(as.numeric(orforest$uci)))
+
+cextext <- 0.7
+
+# c(bottom, left, top, right)
+par(mar = c(4, 8, 1, 4) + 0.2)
+plot(orforest$logor, 1:nrow(orforest),
+  xlab = "",
+  xlim = c(
+    log(0.4),
+    log(3)
+  ),
+  ylim = c(1, nrow(orforest) + 1),
+  axes = FALSE,
+  ylab = NA,
+  cex.lab = 1.1,
+  main = NA,
+  cex = 1,
+  type = "p",
+  pch = 22,
+  bg = global_kicols[1],
+  col = global_kicols[1]
+)
+
+
+for (i in 1:nrow(orforest)) {
+  matplot(c(orforest$lci[i], orforest$uci[i]), c(i, i),
+    type = "l", add = TRUE, col = global_kicols[1], cex = 2
+  )
+}
+
+matplot(c(0, 0), c(-1, nrow(orforest) + 0.5), type = "l", lty = 3, add = TRUE, col = "black")
+
+axis(1,
+  cex.axis = cextext, at = log(c(seq(0.4, 1, 0.1), 1.5, seq(2, 3, 1))),
+  labels = c(0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3)
+)
+
+axis(1,
+  cex.axis = cextext, at = log(0.9),
+  labels = 0.9
+)
+
+axis(2,
+  at = 1:(nrow(orforest) + 1),
+  labels = c(orforest$modnameforest, "Variable"),
+  cex.axis = cextext, tick = FALSE, las = 2, line = 7, hadj = 0
+)
+
+axis(2,
+  at = 1:(nrow(orforest) + 1),
+  labels = c(orforest$p, "P-value"),
+  cex.axis = cextext, tick = FALSE, las = 2, line = -25, hadj = 0.5
+)
+
+axis(1,
+  at = 0.03, cex.axis = cextext,
+  labels = "Digoxin use less likely    Digoxin use more likely", line = 1, tick = FALSE
+)
+```
+
+\clearpage
+\newpage
+
+```{r ortabnoaf, cache=cacheon, dependson="ortabaffunc"}
+
+modvarsaf <- modvars[modvars != "shf_sos_com_af"]
+
+if (exists("ortab")) rm(ortab, envir = .GlobalEnv)
+for (i in seq_along(modvarsaf)) {
+  myor(modvarsaf[i], impdata = imp_noaf)
+}
+colnames(ortab) <- c("Variable", "CrudeOR", "p")
+
+cmodadj <- with(imp_noaf, glm(formula(paste0(
+  "ddr_digoxin == 'Yes' ~ ",
+  paste(modvarsaf, collapse = " + ")
+)),
+family = binomial(link = "logit")
+))
+
+
+scmodadj <- summary(pool(cmodadj))
+
+nval <- length(scmodadj$estimate)
+
+padj <- dF(scmodadj$p.value[2:nval], dig = 3, p = TRUE)
+
+ortabadj <- cbind(
+  as.character(scmodadj$term[2:nval]),
+  paste0(
+    dF(exp(scmodadj$estimate[2:nval]), dig = 2),
+    " (", dF(exp(scmodadj$estimate[2:nval] - global_z05 * scmodadj$std.error[2:nval]), dig = 2),
+    "-", dF(exp(scmodadj$estimate[2:nval] + global_z05 * scmodadj$std.error[2:nval]), dig = 2), ")"
+  ),
+  padj,
+  scmodadj$estimate[2:nval],
+  scmodadj$estimate[2:nval] - global_z05 * scmodadj$std.error[2:nval],
+  scmodadj$estimate[2:nval] + global_z05 * scmodadj$std.error[2:nval]
+)
+
+
+colnames(ortabadj) <- c("Variable", "AdjustedOR", "p", "logor", "lci", "uci")
+
+poveralladj <- with(imp_noaf, car::Anova(glm(formula(paste0(
+  "ddr_digoxin == 'Yes' ~ ",
+  paste(modvarsaf, collapse = " + ")
+)),
+family = binomial(link = "logit")
+), type = "III", test.statistic = "Wald"))
+
+lev3vars <- modvarsaf[pdata_noaf %>%
+  select(!!!syms(modvarsaf)) %>%
+  sapply(nlevels) > 2]
+
+poverall <- cbind(lev3vars, rep(NA, length(lev3vars)), rep(NA, length(lev3vars)),
+                  rep(NA, length(lev3vars)),
+                  rep(NA, length(lev3vars)), 
+                  rep(NA, length(lev3vars)))
+for (i in seq_along(lev3vars)) {
+  chis2 <- c(
+    poveralladj$analyses[[1]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[2]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[3]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[4]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[5]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[6]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[7]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[8]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[9]][lev3vars[i], "Chisq"],
+    poveralladj$analyses[[10]][lev3vars[i], "Chisq"]
+  )
+
+  poverall[i, 3] <- dF(miceadds::micombine.chisquare(
+    dk = chis2, df = poveralladj$analyses[[1]][i, "Df"],
+    display = FALSE
+  )[2], dig = 3, p = TRUE)
+}
+
+ortabadj <- rbind(ortabadj, poverall)
+
+ortaball_noaf <- full_join(data.frame(ortab), data.frame(ortabadj), by = "Variable")
+
+ortaballprint_noaf <- ortaball_noaf %>%
+  select(1:5)
+
+write.xlsx(ortaballprint_noaf, paste0("./output/tabs/ortab_noaf_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+ortaballprint_noaf <- ortaballprint_noaf %>% mutate(Variable = sanitizeTextFunc(Variable))
+
+colnames(ortaballprint_noaf) <- sanitizeTextFunc(c("Variable", rep(c("OR (95% CI)", "p-value"), 2)))
+
+myHeader <- c(" " = 1, "Crude" = 2, "Adjusted" = 2)
+names(myHeader) <- c(" ", "Crude", "Adjusted")
+
+
+mykable(ortaballprint_noaf,
+  fontsize = 6,
+  caption = paste0("Odds Ratios - associations with digoxin - Patients without AF"),
+  longtable = TRUE,
+  escape = FALSE
+) %>%
+  add_header_above(myHeader)
+```
+
+```{r orforestnoaf, cache=cacheon, dependson="ortabnoaf", fig.cap="Association with use of digoxin - Patients without AF"}
+
+orforest <- ortaball_noaf %>% select(Variable, 
+                                logor,
+                                lci,
+                                uci,
+                                p.y
+                                ) %>%
+  rename(var = Variable) %>%
+  filter(!is.na(logor))
+
+orforest <- orforest %>%
+  # remove = Yes
+  mutate(across(everything(), str_replace_all, fixed("Yes"), "")) %>%
+  # to get labs and units in place
+  mutate(
+    # if recoding or categorizing will still get org label
+    var_tmp = str_replace_all(var, "(_cat2|_cat)", ""),
+    # if shf/sos combination  will still get org label
+    var_tmp = str_replace_all(var_tmp, "shf_sos_com_", "sos_com_"),
+  )
+
+orforest <- left_join(orforest,
+  meta.variables.Sheet.1 %>%
+    select(variable, label, unit),
+  by = c("var_tmp" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    )
+  )
+
+orforest <- orforest %>%
+  mutate(
+    modnameforest = case_when(
+      Variable == "shf_nyhaIV" ~ "NYHA IV vs I",
+      Variable == "shf_nyhaIII" ~ "NYHA III vs I",
+      Variable == "shf_nyhaII" ~ "NYHA II vs I",
+      Variable == "shf_anemia" ~ "Anemia",
+      Variable %in% c("shf_ntpropbnpAbove medium within EF", "shf_ntpropbnpAbove medium") ~ "NTproBNP Above vs below medium",
+      Variable == "shf_potassiumhypokalemia" ~ "Hypokalemia",
+      Variable == "scb_famtypeLiving alone" ~ "Living alone",
+      Variable == "shf_deviceCRT/ICD" ~ "CRT/ICD",
+      Variable == "shf_durationhf>6mo" ~ "Duration HF > 6mo vs < 6mo",
+      Variable == "shf_age>=75" ~ "Age >=75 vs <75",
+      Variable == "shf_potassiumhyperkalemia" ~ "Hyperkalemia",
+      Variable == "shf_smokingCurrent" ~ "Smoker",
+      Variable == "scb_educationUniversity" ~ "University vs Compulsory school",
+      Variable == "scb_educationSecondary school" ~ "Secondary vs Compulsory school",
+      Variable == "shf_bmi>=30" ~ "BMI >=30 vs <30",
+      Variable == "shf_followuplocationOther" ~ "Follow-up Other vs Hospital",
+      Variable == "shf_followuplocationPrimary care" ~ "Follow-up Primary care vs Hospital",
+      Variable == "shf_ef<30" ~ "EF <30 vs 30-39",
+      Variable == "shf_sexMale" ~ "Male vs Female",
+      Variable == "scb_dispincomeAbove medium within year" ~ "Income Above vs below medium",
+      Variable == "shf_map>90" ~ "MAP >90 vs <=90",
+      Variable == "shf_heartrate>70" ~ "Heart rate >70 vs <=70",
+      Variable == "shf_locationOut-patient" ~ "Out vs In-patient",
+      Variable == "shf_indexyear011-2015" ~ "Year 2011-15 vs 2005-10",
+      Variable == "shf_indexyear016-2018" ~ "Year 2016-18 vs 2005-10",
+      Variable == "shf_ckd>=60" ~ "eGFR >=60 vs 30-60",
+      Variable == "shf_ckd<30" ~ "eGFR <30 vs 30-60",
+      TRUE ~ Variable
+    ),
+    logor = as.numeric(logor)
+  ) %>%
+  arrange(logor)
+
+# exp(min(as.numeric(orforest$lci)))
+# exp(max(as.numeric(orforest$uci)))
+
+cextext <- 0.7
+
+# c(bottom, left, top, right)
+par(mar = c(4, 8, 1, 4) + 0.2)
+plot(orforest$logor, 1:nrow(orforest),
+  xlab = "",
+  xlim = c(
+    log(0.2),
+    log(4)
+  ),
+  ylim = c(1, nrow(orforest) + 1),
+  axes = FALSE,
+  ylab = NA,
+  cex.lab = 1.1,
+  main = NA,
+  cex = 1,
+  type = "p",
+  pch = 22,
+  bg = global_kicols[1],
+  col = global_kicols[1]
+)
+
+
+for (i in 1:nrow(orforest)) {
+  matplot(c(orforest$lci[i], orforest$uci[i]), c(i, i),
+    type = "l", add = TRUE, col = global_kicols[1], cex = 2
+  )
+}
+
+matplot(c(0, 0), c(-1, nrow(orforest) + 0.5), type = "l", lty = 3, add = TRUE, col = "black")
+
+axis(1,
+  cex.axis = cextext, at = log(c(seq(0.2, 1, 0.1), 1.5, seq(2, 4, 1))),
+  labels = c(0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, NA, 1, 1.5, 2, 3, 4)
+)
+
+axis(2,
+  at = 1:(nrow(orforest) + 1),
+  labels = c(orforest$modnameforest, "Variable"),
+  cex.axis = cextext, tick = FALSE, las = 2, line = 7, hadj = 0
+)
+
+axis(2,
+  at = 1:(nrow(orforest) + 1),
+  labels = c(orforest$p, "P-value"),
+  cex.axis = cextext, tick = FALSE, las = 2, line = -25, hadj = 0.5
+)
+
+axis(1,
+  at = 0.05, cex.axis = cextext,
+  labels = "Digoxin use less likely    Digoxin use more likely", line = 1, tick = FALSE
+)
+```

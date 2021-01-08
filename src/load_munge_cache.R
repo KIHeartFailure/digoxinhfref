@@ -32,6 +32,8 @@ ProjectTemplate::cache("matchpcross_hosphf")
 
 ProjectTemplate::cache("metalm")
 ProjectTemplate::cache("overtime")
+ProjectTemplate::cache("overtime_af")
+ProjectTemplate::cache("overtime_noaf")
 
 ProjectTemplate::cache("tabvars")
 ProjectTemplate::cache("modvars")

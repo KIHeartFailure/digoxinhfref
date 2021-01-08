@@ -1,5 +1,5 @@
 ```{r outtab, cache=cacheon}
-survmy <- function(time = NULL, time1, time2, event, eventname, data, matched = FALSE,
+survmy <- function(time = NULL, event, eventname, data, matched = FALSE,
                    sensanalysis = FALSE, fg = FALSE) {
   tmpdata <- data
 

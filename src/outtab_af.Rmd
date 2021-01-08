@@ -1,5 +1,5 @@
 ```{r outtabfuncaf, cache=cacheon}
-survmy <- function(time = NULL, time1, time2, event, eventname, data, impdata, matched = FALSE,
+survmy <- function(time = NULL, event, eventname, data, impdata, matched = FALSE,
                    sensanalysis = FALSE, fg = FALSE) {
   tmpdata <- data
 
@@ -168,7 +168,8 @@ survmy2 <- function(time2, event2, eventname2,
                     event_comp,
                     data2,
                     impdata2,
-                    matchdata2) {
+                    matchdata, 
+                    crossoverdata) {
   out1 <- survmy(
     time = time2, event = event2,
     eventname = eventname2,
@@ -178,23 +179,30 @@ survmy2 <- function(time2, event2, eventname2,
   out2 <- survmy(
     time = time2, event = event2,
     eventname = eventname2,
-    data = matchdata2, matched = TRUE
+    data = matchdata, matched = TRUE
+  )
+  out3 <- survmy(
+    time = NULL, event = event2,
+    eventname = paste0("Consistency-", eventname2, ", time dependent digoxin"),
+    data = crossoverdata, matched = TRUE, sensanalysis = TRUE
   )
   if (!is.null(event_comp)) {
     out4 <- survmy(
       time = time2, event = event_comp,
       eventname = paste0("Consistency-", eventname2, ", death as competing event"),
-      data = matchdata2, matched = TRUE, sensanalysis = TRUE,
+      data = matchdata, matched = TRUE, sensanalysis = TRUE,
       fg = TRUE
     )
   }
 
   if (!is.null(event_comp)) {
     match <- rbind(
-      out2, out4
+      out2, out3, out4
     )
   } else {
-    match <- out2
+    match <- rbind(
+      out2, out3
+    )
   }
 
   outall <- full_join(out1, match, by = c("Outcome", "Model"))
@@ -207,9 +215,10 @@ deathhfhosp <- survmy2(
   event2 = "sos_out_deathhosphf",
   eventname2 = "First HF hosp/death",
   event_comp = NULL,
-  data = pdata_af,
-  imp = imp_af,
-  matchdata = matchp_af
+  data2 = pdata_af,
+  impdata2 = imp_af,
+  matchdata = matchp_af, 
+  crossoverdata = matchpcross_deathhosphf %>% filter(shf_sos_com_af == "Yes")
 )
 
 death <- survmy2(
@@ -217,9 +226,10 @@ death <- survmy2(
   event2 = "sos_out_death",
   eventname2 = "Death",
   event_comp = NULL,
-  data = pdata_af,
-  imp = imp_af,
-  matchdata = matchp_af
+  data2 = pdata_af,
+  impdata2 = imp_af,
+  matchdata = matchp_af,
+  crossoverdata = matchpcross_death %>% filter(shf_sos_com_af == "Yes")
 )
 
 hfhosp <- survmy2(
@@ -227,9 +237,10 @@ hfhosp <- survmy2(
   event2 = "sos_out_hosphf",
   eventname2 = "First HF hosp",
   event_comp = "sos_out_hosphf_comp",
-  data = pdata_af,
-  imp = imp_af,
-  matchdata = matchp_af
+  data2 = pdata_af,
+  impdata2 = imp_af,
+  matchdata = matchp_af,
+  crossoverdata = matchpcross_hosphf %>% filter(shf_sos_com_af == "Yes")
 )
 
 outall <- rbind(
@@ -267,9 +278,10 @@ deathhfhosp <- survmy2(
   event2 = "sos_out_deathhosphf",
   eventname2 = "First HF hosp/death",
   event_comp = NULL,
-  data = pdata_noaf,
-  imp = imp_noaf,
-  matchdata = matchp_noaf
+  data2 = pdata_noaf,
+  impdata2 = imp_noaf,
+  matchdata = matchp_noaf,
+  crossoverdata = matchpcross_deathhosphf %>% filter(shf_sos_com_af == "No")
 )
 
 death <- survmy2(
@@ -277,9 +289,10 @@ death <- survmy2(
   event2 = "sos_out_death",
   eventname2 = "Death",
   event_comp = NULL,
-  data = pdata_noaf,
-  imp = imp_noaf,
-  matchdata = matchp_noaf
+  data2 = pdata_noaf,
+  impdata2 = imp_noaf,
+  matchdata = matchp_noaf,
+  crossoverdata = matchpcross_death %>% filter(shf_sos_com_af == "No")
 )
 
 hfhosp <- survmy2(
@@ -287,9 +300,10 @@ hfhosp <- survmy2(
   event2 = "sos_out_hosphf",
   eventname2 = "First HF hosp",
   event_comp = "sos_out_hosphf_comp",
-  data = pdata_noaf,
-  imp = imp_noaf,
-  matchdata = matchp_noaf
+  data2 = pdata_noaf,
+  impdata2 = imp_noaf,
+  matchdata = matchp_noaf,
+  crossoverdata = matchpcross_hosphf %>% filter(shf_sos_com_af == "No")
 )
 
 outall <- rbind(

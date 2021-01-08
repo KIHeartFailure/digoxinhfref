@@ -79,7 +79,7 @@ crossoverfunc <- function(time, event) {
     ) %>%
     ungroup() %>%
     arrange(LopNr, dtmuse) %>%
-    select(LopNr, shf_indexdtm, ddr_digoxin, start, stop, !!event, par)
+    select(LopNr, shf_indexdtm, ddr_digoxin, start, stop, !!event, par, shf_sos_com_af)
   return(matchpcrossover)
 }
 

@@ -1,0 +1,146 @@
+```{r kmaf, cache=cacheon}
+kmfunc <- function(data, matchdata, time, event, eventname, yvalsplus = rep(0, 3)) {
+
+  # unadj
+  fitu <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
+    data = data
+  )
+  ## cox
+  sdu <- summary(coxph(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
+    data = data
+  ))
+  pu <- paste0(
+    "Crude HR (95% CI), p: ", dF(sdu$conf.int[1], 2), " (",
+    dF(sdu$conf.int[3], 2), "-",
+    dF(sdu$conf.int[4], 2), "), ",
+    dF(sdu$coefficients[5], 3, p = TRUE)
+  )
+
+  # adj match
+  fitm <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
+    data = matchdata
+  )
+  ## cox
+  sdm <- coxme(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin + (1 | par)")),
+    data = matchdata
+  )
+  se <- sqrt(vcov(sdm)[1])
+  pm <- paste0(
+    "Adjusted HR (95% CI), p: ", dF(exp(sdm$coefficients[1]), dig = 2),
+    " (", dF(exp(sdm$coefficients[1] - global_z05 * se), dig = 2),
+    "-", dF(exp(sdm$coefficients[1] + global_z05 * se), dig = 2), "), ",
+    dF((1 - pnorm(abs(sdm$coeff[1] / se))) * 2, dig = 3, p = TRUE)
+  )
+
+
+  # c(bottom, left, top, right)
+  par(mar = c(4, 6, 1, 7.5) + 0.1)
+  plotm <- plot(fitm,
+    fun = "event",
+    ylab = eventname,
+    xscale = 30.5,
+    yscale = 100,
+    col = global_kicols[1],
+    mark.time = FALSE,
+    bty = "n",
+    xlim = c(0, 7 * 365),
+    # xmax = 7 * 365,
+    ylim = c(0, 1),
+    xlab = "Years",
+    axes = F,
+    lwd = 3,
+    lty = c(1, 2),
+    xaxs = "i", yaxs = "i"
+  )
+
+  plotu <- lines(fitu,
+    fun = "event",
+    xscale = 30.5,
+    yscale = 100,
+    col = global_kicols[1],
+    mark.time = FALSE,
+    lwd = 3,
+    lty = c(3, 2),
+    xaxs = "i", yaxs = "i"
+  )
+
+  axis(2, seq(0, 1, 0.25), seq(0, 100, 25), las = 2)
+  axis(1, at = seq(0, 7, 1) * 365, seq(0, 7, 1))
+
+  yposu <- 1 - summary(fitu, 365 * 7)$surv[1]
+  yposm <- 1 - summary(fitm, 365 * 7)$surv
+  
+  ycord <- data.frame(
+    y = c(yposu, yposm),
+    name = c("No digoxin all", "No digoxin matched", "Digoxin")
+  )
+  
+  mtext(
+    side = 4, line = .2, at = ycord$y + yvalsplus,
+    ycord$name,
+    las = 1
+  )
+
+  text(0.5 * 365, 0.90, pu, pos = 4)
+  text(0.5 * 365, 0.85, pm, pos = 4)
+}
+```
+
+```{r kmdeathhfhospaf, fig.cap="1-KM First HF hospitalization/death - Patients with AF", cache=cacheon, dependson="kmaf"}
+kmfunc(
+  data = pdata_af,
+  matchdata = matchp_af,
+  time = "sos_outtime_hosphf",
+  event = "sos_out_deathhosphf",
+  eventname = "First HF hospitalization/death (%)",
+  yvalsplus = c(0, 0, 0)
+  # c("No digoxin all", "No digoxin matched", "Digoxin")
+)
+```
+
+```{r kmdeathaf, fig.cap="1-KM Death - Patients with AF", cache=cacheon, dependson="kmaf"}
+kmfunc(
+  data = pdata_af,
+  matchdata = matchp_af,
+  "sos_outtime_death", "sos_out_death", "Death (%)",
+  yvalsplus = c(0, 0.01, -0.01)
+)
+```
+
+```{r kmhfhospaf, fig.cap="1-KM First HF hospitalization - Patients with AF", cache=cacheon, dependson="kmaf"}
+kmfunc(
+  data = pdata_af,
+  matchdata = matchp_af,
+  "sos_outtime_hosphf", "sos_out_hosphf", "First HF hospitalization (%)",
+  yvalsplus = c(0.007, -0.007, 0)
+)
+```
+
+```{r kmdeathhfhospnoaf, fig.cap="1-KM First HF hospitalization/death - Patients without AF", cache=cacheon, dependson="kmaf"}
+kmfunc(
+  data = pdata_noaf,
+  matchdata = matchp_noaf,
+  time = "sos_outtime_hosphf",
+  event = "sos_out_deathhosphf",
+  eventname = "First HF hospitalization/death (%)",
+  yvalsplus = c(0, 0, 0)
+)
+```
+
+```{r kmdeathnoaf, fig.cap="1-KM Death - Patients without AF", cache=cacheon, dependson="kmaf"}
+kmfunc(
+  data = pdata_noaf,
+  matchdata = matchp_noaf,
+  "sos_outtime_death", "sos_out_death", "Death (%)",
+  yvalsplus = c(0, 0, 0)
+)
+```
+
+```{r kmhfhospnoaf, fig.cap="1-KM First HF hospitalization - Patients without AF", cache=cacheon, dependson="kmaf"}
+kmfunc(
+  data = pdata_noaf,
+  matchdata = matchp_noaf,
+  "sos_outtime_hosphf", "sos_out_hosphf", "First HF hospitalization (%)",
+  yvalsplus = c(0, 0, 0)
+)
+```

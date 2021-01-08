@@ -89,6 +89,11 @@ All analyses were performed using `r sessionInfo()$R.version$version.string` [@r
 The level of significance is set to 5%, two-sided. No adjustment for multiple 
 comparisons were made and therefore the results should be viewed with some care.
 
+## AF
+
+All analysis are performed partly for the full population and partly seperatly for 
+patients with and without AF. 
+
 ## Missing data
 
 Missing data was imputed with multiple imputation using mice [@mice] for 10 
@@ -107,11 +112,11 @@ matching to balance the baseline characteristics was assessed by
 standardized mean differences.  
 
 1:1 has deemed the best option when taking into account the number of patients 
-retained and sample size. Other matching ratios: `r matchingn`. 
+retained and sample size. Other matching ratios (for the full population): `r matchingn`. 
 
 ## Digoxin over time
 
-The denominator is the population in the analysis (N = `r nrow(pdata)`). 
+The denominator is the full population in the analysis (N = `r nrow(pdata)`). 
 The numerator consists of the number of patients that have at least one digoxin 
 prescription. The calculation is done per year, so a patient without digoxin 
 at index in SwedeHF, for example 2017, might still be included in the numerator for example for 2013 or 2018.  
@@ -120,9 +125,16 @@ at index in SwedeHF, for example 2017, might still be included in the numerator 
 
 ```
 
+\clearpage
+\newpage
+
 ## Baseline characteristics
 
 ```{r, child = "../src/tab1.Rmd"}
+
+```
+
+```{r, child = "../src/tab1_af.Rmd"}
 
 ```
 
@@ -134,6 +146,13 @@ at index in SwedeHF, for example 2017, might still be included in the numerator 
 Odds ratios are estimated using logistic regression with digoxin use as outcome. 
 
 ```{r, child = "../src/ortab.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+```{r, child = "../src/ortab_af.Rmd"}
 
 ```
 
@@ -160,13 +179,7 @@ would have been the same for a censored patient had the censoring not occurred.
 
 Incidence per 1000 py was calculated with 95% Poisson confidence intervals. 
 
-The outcomes are presented with the 1 - Kaplan-Meier curves
-and tested with the log-rank test for the whole and matched population. 
-Note that the log-rank test is theoretically 
-redundant since the cox regression gives the same information. 
-Note further that the cox regression for the matched population incorporates 
-a frailty term taking into account the dependency between pairs 
-which is not done in the log-rank test. 
+The outcomes are presented with the 1 - Kaplan-Meier curves.
 
 Cox proportional hazards regressions were used to evaluate the association 
 between digoxin and the respective outcomes. 
@@ -203,6 +216,14 @@ were death was treated as a competing event.
 
 ```
 
+```{r, child = "../src/km_af.Rmd"}
+
+```
+
+```{r, child = "../src/outtab_af.Rmd"}
+
+```
+
 ### Subgroups
 
 Performed using interaction effects on the patients in the matched cohort and 
@@ -214,6 +235,10 @@ Note that there is missing data for some of the variables so the matching
 
 ```
 
+```{r, child = "../src/outtabsub_af.Rmd"}
+
+```
+
 ### Assumptions
 
 The proportional hazards assumption was investigated using the scaled Schoenfeld 
@@ -222,37 +247,6 @@ in the ps matched cohort (digoxin according to ITT).
 Possible outliers were visually inspected by plotting the dfbetas. 
 => `r paste0(stratavars, collapse = ", ")` were deemed not to have proportional
 hazards and therefore stratified for in the cox regressions.  
-
-\clearpage
-\newpage
-
-## By AF
-
-Imputation, propensity score matching and the outcome analyses was also performed 
-separately in patients with and without AF.
-
-### Baseline characteristics
-
-```{r, child = "../src/tab1_af.Rmd"}
-
-```
-
-### Association digoxin vs outcomes
-
-```{r, child = "../src/outtab_af.Rmd"}
-
-```
-
-#### Subgroups
-
-Performed using interaction effects on the patients in the matched cohort and 
-presented in a Forest plot. 
-Note that there is missing data for some of the variables so the matching 
-(and thereby the adjustment) may therefore not be complete. 
-
-```{r, child = "../src/outtabsub_af.Rmd"}
-
-```
 
 \clearpage
 \newpage

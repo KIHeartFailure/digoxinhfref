@@ -50,7 +50,7 @@ tab1af <- function(data, matchdata, title) {
 
   ## add fotnote stating which variables are used in multiple imputation
 
-  tab1out$var <- ifelse(stri_extract_first_words(tab1out$tmp_varsforfoot) %in% modvars,
+  tab1out$var <- ifelse(stri_extract_first_words(tab1out$tmp_varsforfoot) %in% modvars[modvars != "shf_sos_com_af"],
     paste0(tab1out$var, footnote_marker_symbol(2)), tab1out$var
   )
 

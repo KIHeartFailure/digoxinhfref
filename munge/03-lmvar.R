@@ -67,3 +67,21 @@ overtime <- lmtmp %>%
   slice(1) %>%
   ungroup() %>%
   count(AR)
+
+overtime_af <- lmtmp %>%
+  filter(shf_sos_com_af == "Yes") %>%
+  mutate(atcneed = stringr::str_detect(ATC, "^(C01AA05)")) %>%
+  filter(atcneed) %>%
+  group_by(LopNr, AR) %>%
+  slice(1) %>%
+  ungroup() %>%
+  count(AR)
+
+overtime_noaf <- lmtmp %>%
+  filter(shf_sos_com_af == "No") %>%
+  mutate(atcneed = stringr::str_detect(ATC, "^(C01AA05)")) %>%
+  filter(atcneed) %>%
+  group_by(LopNr, AR) %>%
+  slice(1) %>%
+  ungroup() %>%
+  count(AR)
