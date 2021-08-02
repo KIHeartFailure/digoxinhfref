@@ -10,9 +10,9 @@ kmfunc <- function(data, matchdata, time, event, eventname, yvalsplus = rep(0, 3
     data = data
   ))
   pu <- paste0(
-    "Crude HR (95% CI), p: ", dF(sdu$conf.int[1], 2), " (",
-    dF(sdu$conf.int[3], 2), "-",
-    dF(sdu$conf.int[4], 2), "), ",
+    "Crude HR (95% CI), p: ", dF(sdu$conf.int[1], 1), " (",
+    dF(sdu$conf.int[3], 1), "-",
+    dF(sdu$conf.int[4], 1), "), ",
     dF(sdu$coefficients[5], 3, p = TRUE)
   )
 
@@ -26,15 +26,15 @@ kmfunc <- function(data, matchdata, time, event, eventname, yvalsplus = rep(0, 3
   )
   se <- sqrt(vcov(sdm)[1])
   pm <- paste0(
-    "Adjusted HR (95% CI), p: ", dF(exp(sdm$coefficients[1]), dig = 2),
-    " (", dF(exp(sdm$coefficients[1] - global_z05 * se), dig = 2),
-    "-", dF(exp(sdm$coefficients[1] + global_z05 * se), dig = 2), "), ",
+    "Adjusted HR (95% CI), p: ", dF(exp(sdm$coefficients[1]), dig = 1),
+    " (", dF(exp(sdm$coefficients[1] - global_z05 * se), dig = 1),
+    "-", dF(exp(sdm$coefficients[1] + global_z05 * se), dig = 1), "), ",
     dF((1 - pnorm(abs(sdm$coeff[1] / se))) * 2, dig = 3, p = TRUE)
   )
 
 
   # c(bottom, left, top, right)
-  par(mar = c(4, 6, 1, 7.5) + 0.1)
+  par(mar = c(4, 6, 1, 10.5) + 0.1)
   plotm <- plot(fitm,
     fun = "event",
     ylab = eventname,
@@ -72,7 +72,7 @@ kmfunc <- function(data, matchdata, time, event, eventname, yvalsplus = rep(0, 3
   
   ycord <- data.frame(
     y = c(yposu, yposm),
-    name = c("No digoxin all", "No digoxin matched", "Digoxin")
+    name = c("Digoxin non-users (overall)", "Digoxin non-users (PS)", "Digoxin users")
   )
   
   mtext(
@@ -81,8 +81,8 @@ kmfunc <- function(data, matchdata, time, event, eventname, yvalsplus = rep(0, 3
     las = 1
   )
 
-  text(0.5 * 365, 0.90, pu, pos = 4)
-  text(0.5 * 365, 0.85, pm, pos = 4)
+  text(0.2 * 365, 0.90, pu, pos = 4)
+  text(0.2 * 365, 0.85, pm, pos = 4)
 }
 ```
 

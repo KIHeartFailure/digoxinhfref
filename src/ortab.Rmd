@@ -201,25 +201,25 @@ orforest <- orforest %>%
       Variable == "shf_potassiumhypokalemia" ~ "Hypokalemia",
       Variable == "scb_famtypeLiving alone" ~ "Living alone",
       Variable == "shf_deviceCRT/ICD" ~ "CRT/ICD",
-      Variable == "shf_durationhf>6mo" ~ "Duration HF > 6mo vs < 6mo",
-      Variable == "shf_age>=75" ~ "Age >=75 vs <75",
+      Variable == "shf_durationhf>6mo" ~ "Duration HF > 6 vs < 6 (mo)",
+      Variable == "shf_age>=75" ~ "Age >=75 vs <75 (years)",
       Variable == "shf_potassiumhyperkalemia" ~ "Hyperkalemia",
       Variable == "shf_smokingCurrent" ~ "Smoker",
       Variable == "scb_educationUniversity" ~ "University vs Compulsory school",
       Variable == "scb_educationSecondary school" ~ "Secondary vs Compulsory school",
-      Variable == "shf_bmi>=30" ~ "BMI >=30 vs <30",
+      Variable == "shf_bmi>=30" ~ "BMI >=30 vs <30 (kg/m2)",
       Variable == "shf_followuplocationOther" ~ "Follow-up Other vs Hospital",
       Variable == "shf_followuplocationPrimary care" ~ "Follow-up Primary care vs Hospital",
-      Variable == "shf_ef<30" ~ "EF <30 vs 30-39",
+      Variable == "shf_ef<30" ~ "EF <30 vs 30-39 (%)",
       Variable == "shf_sexMale" ~ "Male vs Female",
       Variable == "scb_dispincomeAbove medium within year" ~ "Income Above vs below medium",
-      Variable == "shf_map>90" ~ "MAP >90 vs <=90",
-      Variable == "shf_heartrate>70" ~ "Heart rate >70 vs <=70",
+      Variable == "shf_map>90" ~ "MAP >90 vs <=90 (mmHg)",
+      Variable == "shf_heartrate>70" ~ "Heart rate >70 vs <=70 (bpm)",
       Variable == "shf_locationOut-patient" ~ "Out vs In-patient",
       Variable == "shf_indexyear011-2015" ~ "Year 2011-15 vs 2005-10",
       Variable == "shf_indexyear016-2018" ~ "Year 2016-18 vs 2005-10",
-      Variable == "shf_ckd>=60" ~ "eGFR >=60 vs 30-60",
-      Variable == "shf_ckd<30" ~ "eGFR <30 vs 30-60",
+      Variable == "shf_ckd>=60" ~ "eGFR >=60 vs 30-60 (ml/min/1.73m2)",
+      Variable == "shf_ckd<30" ~ "eGFR <30 vs 30-60 (ml/min/1.73m2)",
       TRUE ~ Variable
     ),
     logor = as.numeric(logor)
@@ -266,8 +266,8 @@ axis(1,
 )
 
 axis(2,
-  at = 1:(nrow(orforest) + 1),
-  labels = c(orforest$modnameforest, "Variable"),
+  at = 1:nrow(orforest),
+  labels = orforest$modnameforest,
   cex.axis = cextext, tick = FALSE, las = 2, line = 7, hadj = 0
 )
 
@@ -281,4 +281,6 @@ axis(1,
   at = 0.05, cex.axis = cextext,
   labels = "Digoxin use less likely    Digoxin use more likely", line = 1, tick = FALSE
 )
+
+text(0, (nrow(orforest) + 1), "Odds Ratio (95% CI)", cex = cextext)
 ```
