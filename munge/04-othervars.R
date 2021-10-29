@@ -81,6 +81,8 @@ pdata <- pdata %>%
       TRUE ~ "No"
     ),
 
+    sos_durationaf = if_else(shf_sos_com_af == "No", NA_real_, sos_comdur_afdur),
+    
     shf_sos_com_ihd = case_when(
       sos_com_ihd == "Yes" |
         shf_revasc == "Yes" |
@@ -107,6 +109,9 @@ pdata <- pdata %>%
       shf_sex == "Female" & shf_hb < 120 | shf_sex == "Male" & shf_hb < 130 ~ "Yes",
       TRUE ~ "No"
     ),
+    
+    # missing ntprobnp 
+    shf_missingntprobnp = if_else(is.na(shf_ntpropbnp), "Yes", "No"),
 
     # Outcomes
 
@@ -187,7 +192,3 @@ pdata <- left_join(
 
 pdata <- pdata %>%
   mutate_if(is_character, factor)
-
-
-pdata_af <- pdata %>% filter(shf_sos_com_af == "Yes")
-pdata_noaf <- pdata %>% filter(shf_sos_com_af == "No")

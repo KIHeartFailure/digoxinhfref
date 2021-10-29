@@ -72,7 +72,7 @@ survmysub2 <- function(time2, event2) {
       time = time2,
       event = event2,
       xvar = "shf_durationhf",
-      xvarname = "Duration of HF (mo)"
+      xvarname = "HF duration (mo)"
     )
   )
 
@@ -193,6 +193,16 @@ survmysub2 <- function(time2, event2) {
       event = event2,
       xvar = "shf_map_cat",
       xvarname = "MAP"
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_missingntprobnp",
+      xvarname = "Missing NT-proBNP"
     )
   )
 }

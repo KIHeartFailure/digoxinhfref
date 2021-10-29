@@ -218,7 +218,7 @@ deathhfhosp <- survmy2(
   data2 = pdata_af,
   impdata2 = imp_af,
   matchdata = matchp_af, 
-  crossoverdata = matchpcross_deathhosphf %>% filter(shf_sos_com_af == "Yes")
+  crossoverdata = matchpcross_af_deathhosphf
 )
 
 death <- survmy2(
@@ -229,7 +229,7 @@ death <- survmy2(
   data2 = pdata_af,
   impdata2 = imp_af,
   matchdata = matchp_af,
-  crossoverdata = matchpcross_death %>% filter(shf_sos_com_af == "Yes")
+  crossoverdata = matchpcross_af_death
 )
 
 hfhosp <- survmy2(
@@ -240,7 +240,7 @@ hfhosp <- survmy2(
   data2 = pdata_af,
   impdata2 = imp_af,
   matchdata = matchp_af,
-  crossoverdata = matchpcross_hosphf %>% filter(shf_sos_com_af == "Yes")
+  crossoverdata = matchpcross_af_hosphf
 )
 
 outall <- rbind(
@@ -281,7 +281,7 @@ deathhfhosp <- survmy2(
   data2 = pdata_noaf,
   impdata2 = imp_noaf,
   matchdata = matchp_noaf,
-  crossoverdata = matchpcross_deathhosphf %>% filter(shf_sos_com_af == "No")
+  crossoverdata = matchpcross_noaf_deathhosphf
 )
 
 death <- survmy2(
@@ -292,7 +292,7 @@ death <- survmy2(
   data2 = pdata_noaf,
   impdata2 = imp_noaf,
   matchdata = matchp_noaf,
-  crossoverdata = matchpcross_death %>% filter(shf_sos_com_af == "No")
+  crossoverdata = matchpcross_noaf_death
 )
 
 hfhosp <- survmy2(
@@ -303,7 +303,7 @@ hfhosp <- survmy2(
   data2 = pdata_noaf,
   impdata2 = imp_noaf,
   matchdata = matchp_noaf,
-  crossoverdata = matchpcross_hosphf %>% filter(shf_sos_com_af == "No")
+  crossoverdata = matchpcross_noaf_hosphf
 )
 
 outall <- rbind(

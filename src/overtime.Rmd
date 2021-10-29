@@ -1,61 +1,57 @@
 ```{r overtime, fig.cap="Digoxin use overtime"}
 
+cextext <- 1.5
+
 overtime <- overtime %>%
   filter(AR >= 2006, AR <= 2018) %>%
   mutate(percent = n / nrow(pdata) * 100) %>%
   as.data.frame()
 
-ggplot(
-  data = overtime,
-  aes(x = AR, y = percent)) +
-  geom_line(color = global_kicols[1], size = 2) +
-  geom_point(size = 2) +
-  theme_minimal() +
-  scale_x_continuous(labels = overtime$AR, breaks = overtime$AR, minor_breaks = overtime$AR) +
-  #scale_y_continuous(labels = seq(0, 16, 1), breaks = seq(0, 16, 1), minor_breaks = seq(0, 16, 1)) +
-  xlab("Year") +
-  ylab("% of patients") +
-  ylim(0, 16)
+plot(overtime$AR, overtime$percent,
+  type = "l", lwd = 3, col = global_kicols[1],
+  xlab = "Year", ylab = "% of patients", axes = FALSE, ylim = c(0, 16), cex.lab = cextext
+)
+matplot(overtime$AR, overtime$percent, type = "p", pch = 16, add = T, cex = 1.5)
+abline(col = "black", lty = "dotted", h = seq(0, 16, 2), v = 2006:2018)
+axis(1, cex.axis = cextext)
+axis(2, las = 2, at = seq(0, 16, 2), cex.axis = cextext)
+box(bty = "l")
 ```
 
 ```{r overtimeaf, fig.cap="Digoxin use overtime - Patients with AF"}
+cextext <- 1.5
 
 overtime_af <- overtime_af %>%
   filter(AR >= 2006, AR <= 2018) %>%
   mutate(percent = n / nrow(pdata_af) * 100) %>%
   as.data.frame()
 
-ggplot(
-  data = overtime_af,
-  aes(x = AR, y = percent)
-) +
-  geom_line(color = global_kicols[1], size = 2) +
-  geom_point(size = 2) +
-  theme_minimal() +
-  scale_x_continuous(labels = overtime$AR, breaks = overtime$AR, minor_breaks = overtime$AR) +
-  # scale_y_continuous(labels = seq(0, 12, .5), breaks = seq(0, 12, .5), minor_breaks = seq(0, 12, .5)) +
-  xlab("Year") +
-  ylab("% of patients") +
-  ylim(0, 16)
+plot(overtime_af$AR, overtime_af$percent,
+  type = "l", lwd = 3, col = global_kicols[1],
+  xlab = "Year", ylab = "% of patients", axes = FALSE, ylim = c(0, 16), cex.lab = cextext
+)
+matplot(overtime_af$AR, overtime_af$percent, type = "p", pch = 16, add = T, cex = 1.5)
+abline(col = "black", lty = "dotted", h = seq(0, 16, 2), v = 2006:2018)
+axis(1, cex.axis = cextext)
+axis(2, las = 2, at = seq(0, 16, 2), cex.axis = cextext)
+box(bty = "l")
 ```
 
 ```{r overtimeniaf, fig.cap="Digoxin use overtime - Patients without AF"}
+cextext <- 1.5
 
 overtime_noaf <- overtime_noaf %>%
   filter(AR >= 2006, AR <= 2018) %>%
   mutate(percent = n / nrow(pdata_noaf) * 100) %>%
   as.data.frame()
 
-ggplot(
-  data = overtime_noaf,
-  aes(x = AR, y = percent)
-) +
-  geom_line(color = global_kicols[1], size = 2) +
-  geom_point(size = 2) +
-  theme_minimal() +
-  scale_x_continuous(labels = overtime$AR, breaks = overtime$AR, minor_breaks = overtime$AR) +
-  # scale_y_continuous(labels = seq(0, 12, .5), breaks = seq(0, 12, .5), minor_breaks = seq(0, 12, .5)) +
-  xlab("Year") +
-  ylab("% of patients") +
-  ylim(0, 16)
+plot(overtime_noaf$AR, overtime_noaf$percent,
+  type = "l", lwd = 3, col = global_kicols[1],
+  xlab = "Year", ylab = "% of patients", axes = FALSE, ylim = c(0, 16), cex.lab = cextext
+)
+matplot(overtime_noaf$AR, overtime_noaf$percent, type = "p", pch = 16, add = T, cex = 1.5)
+abline(col = "black", lty = "dotted", h = seq(0, 16, 2), v = 2006:2018)
+axis(1, cex.axis = cextext)
+axis(2, las = 2, at = seq(0, 16, 2), cex.axis = cextext)
+box(bty = "l")
 ```

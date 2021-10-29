@@ -75,7 +75,7 @@ survmysub2 <- function(time2, event2, matchdata2) {
       time = time2,
       event = event2,
       xvar = "shf_durationhf",
-      xvarname = "Duration of HF (mo)",
+      xvarname = "HF duration (mo)",
       matchdata = matchdata2
     )
   )
@@ -197,6 +197,17 @@ survmysub2 <- function(time2, event2, matchdata2) {
       event = event2,
       xvar = "shf_map_cat",
       xvarname = "MAP",
+      matchdata = matchdata2
+    )
+  )
+
+  forestdata <- rbind(
+    forestdata,
+    survmysub(
+      time = time2,
+      event = event2,
+      xvar = "shf_missingntprobnp",
+      xvarname = "Missing NT-proBNP",
       matchdata = matchdata2
     )
   )
@@ -354,4 +365,3 @@ hfhospforest <- survmysub2(
 ```{r foresthfhospnoaf, cache=cacheon, dependson="outtabsubfuncafplot", fig.cap="Subgroups First HF hospitalization - Patients without AF", fig.width=5, fig.height=10}
 plotforest(hfhospforest, xlabadj = 0.25)
 ```
-

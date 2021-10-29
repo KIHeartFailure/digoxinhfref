@@ -1,9 +1,9 @@
 ```{r kmaf, cache=cacheon}
 kmfunc <- function(data, matchdata, time, event, eventname, yvalsplus = rep(0, 3)) {
-
+  cextext <- 1.5
   # unadj
-  fitu <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
-    data = data
+  fitu <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ 1")),
+    data = data %>% filter(ddr_digoxin == "No")
   )
   ## cox
   sdu <- summary(coxph(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ ddr_digoxin")),
@@ -34,7 +34,7 @@ kmfunc <- function(data, matchdata, time, event, eventname, yvalsplus = rep(0, 3
 
 
   # c(bottom, left, top, right)
-  par(mar = c(4, 6, 1, 10.5) + 0.1)
+  par(mar = c(4, 4, 1, 13.6) + 0.1)
   plotm <- plot(fitm,
     fun = "event",
     ylab = eventname,
@@ -50,73 +50,76 @@ kmfunc <- function(data, matchdata, time, event, eventname, yvalsplus = rep(0, 3
     axes = F,
     lwd = 3,
     lty = c(1, 2),
-    xaxs = "i", yaxs = "i"
+    xaxs = "i", yaxs = "i",
+    cex.lab = cextext
   )
 
   plotu <- lines(fitu,
+    conf.int = FALSE,
     fun = "event",
     xscale = 30.5,
     yscale = 100,
     col = global_kicols[1],
     mark.time = FALSE,
     lwd = 3,
-    lty = c(3, 2),
+    lty = 3,
     xaxs = "i", yaxs = "i"
   )
 
-  axis(2, seq(0, 1, 0.25), seq(0, 100, 25), las = 2)
-  axis(1, at = seq(0, 7, 1) * 365, seq(0, 7, 1))
+  axis(2, seq(0, 1, 0.25), seq(0, 100, 25), las = 2, cex.axis = cextext)
+  axis(1, at = seq(0, 7, 1) * 365, seq(0, 7, 1), cex.axis = cextext)
 
-  yposu <- 1 - summary(fitu, 365 * 7)$surv[1]
+  yposu <- 1 - summary(fitu, 365 * 7)$surv
   yposm <- 1 - summary(fitm, 365 * 7)$surv
-  
+
   ycord <- data.frame(
     y = c(yposu, yposm),
-    name = c("Digoxin non-users (overall)", "Digoxin non-users (PS)", "Digoxin users")
+    name = c("Digoxin non-users (all)", "Digoxin non-users (PS)", "Digoxin users")
   )
-  
+
   mtext(
     side = 4, line = .2, at = ycord$y + yvalsplus,
     ycord$name,
-    las = 1
+    las = 1,
+    cex = cextext
   )
 
-  text(0 * 365, 0.90, pu, pos = 4)
-  text(0 * 365, 0.85, pm, pos = 4)
+  text(0 * 365, 0.90, pu, pos = 4, cex = cextext)
+  text(0 * 365, 0.85, pm, pos = 4, cex = cextext)
 }
 ```
 
-```{r kmdeathhfhospaf, fig.cap="1-KM First HF hospitalization/death - Patients with AF", cache=cacheon, dependson="kmaf"}
+```{r kmdeathhfhospaf, fig.cap="1-KM First HF hospitalization/death - Patients with AF", cache=cacheon, dependson="kmaf", fig.width=9, fig.height=7}
 kmfunc(
   data = pdata_af,
   matchdata = matchp_af,
   time = "sos_outtime_hosphf",
   event = "sos_out_deathhosphf",
   eventname = "First HF hospitalization/death (%)",
-  yvalsplus = c(0, 0, 0)
+  yvalsplus = c(0.015, 0, -.01)
   # c("No digoxin all", "No digoxin matched", "Digoxin")
 )
 ```
 
-```{r kmdeathaf, fig.cap="1-KM Death - Patients with AF", cache=cacheon, dependson="kmaf"}
+```{r kmdeathaf, fig.cap="1-KM Death - Patients with AF", cache=cacheon, dependson="kmaf", fig.width=9, fig.height=7}
 kmfunc(
   data = pdata_af,
   matchdata = matchp_af,
   "sos_outtime_death", "sos_out_death", "Death (%)",
-  yvalsplus = c(0, 0.01, -0.01)
+  yvalsplus = c(0, 0.01, -0.02)
 )
 ```
 
-```{r kmhfhospaf, fig.cap="1-KM First HF hospitalization - Patients with AF", cache=cacheon, dependson="kmaf"}
+```{r kmhfhospaf, fig.cap="1-KM First HF hospitalization - Patients with AF", cache=cacheon, dependson="kmaf", fig.width=9, fig.height=7}
 kmfunc(
   data = pdata_af,
   matchdata = matchp_af,
   "sos_outtime_hosphf", "sos_out_hosphf", "First HF hospitalization (%)",
-  yvalsplus = c(0.007, -0.007, 0)
+  yvalsplus = c(0.02, -0.01, -0.005)
 )
 ```
 
-```{r kmdeathhfhospnoaf, fig.cap="1-KM First HF hospitalization/death - Patients without AF", cache=cacheon, dependson="kmaf"}
+```{r kmdeathhfhospnoaf, fig.cap="1-KM First HF hospitalization/death - Patients without AF", cache=cacheon, dependson="kmaf", fig.width=9, fig.height=7}
 kmfunc(
   data = pdata_noaf,
   matchdata = matchp_noaf,
@@ -127,16 +130,16 @@ kmfunc(
 )
 ```
 
-```{r kmdeathnoaf, fig.cap="1-KM Death - Patients without AF", cache=cacheon, dependson="kmaf"}
+```{r kmdeathnoaf, fig.cap="1-KM Death - Patients without AF", cache=cacheon, dependson="kmaf", fig.width=9, fig.height=7}
 kmfunc(
   data = pdata_noaf,
   matchdata = matchp_noaf,
   "sos_outtime_death", "sos_out_death", "Death (%)",
-  yvalsplus = c(0, 0, 0)
+  yvalsplus = c(0, 0, 0.01)
 )
 ```
 
-```{r kmhfhospnoaf, fig.cap="1-KM First HF hospitalization - Patients without AF", cache=cacheon, dependson="kmaf"}
+```{r kmhfhospnoaf, fig.cap="1-KM First HF hospitalization - Patients without AF", cache=cacheon, dependson="kmaf", fig.width=9, fig.height=7}
 kmfunc(
   data = pdata_noaf,
   matchdata = matchp_noaf,

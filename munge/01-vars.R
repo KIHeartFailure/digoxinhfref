@@ -57,6 +57,10 @@ tabvars <- c(
   "sos_com_peripheralartery",
   "sos_com_stroke",
   "shf_sos_com_af",
+  "sos_com_afparoxysmal", 
+  "sos_com_afpersistent", 
+  "sos_durationaf", 
+  "shf_ekg", 
   "sos_com_valvular",
   "sos_com_liver",
   "sos_com_cancer3y",
@@ -86,7 +90,12 @@ tabvars_not_in_mod <- c(
   "shf_ntpropbnp",
   "shf_potassium",
 
-  "shf_bmi"
+  "shf_bmi", 
+  "shf_ekg", 
+  
+  "sos_com_afparoxysmal", 
+  "sos_com_afpersistent", 
+  "sos_durationaf"
 )
 
 modvars <- tabvars[!(tabvars %in% tabvars_not_in_mod)]

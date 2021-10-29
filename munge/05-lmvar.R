@@ -37,12 +37,12 @@ lmtreats <- function(atc, treatname) {
   }
 }
 
-
 lmtreats("^(C01AA05)", "digoxin")
 
 pdata <- pdata %>%
-  mutate_if(is_character, factor) %>%
-  mutate(ddr_digoxinnum = as.numeric(ddr_digoxin) - 1)
+  mutate(ddr_digoxin = factor(ddr_digoxin), 
+         ddr_digoxinnum = if_else(ddr_digoxin == "Yes", 1, 0)
+         )
 
 metalm <- matrix(metalm, ncol = 2)
 colnames(metalm) <- c("Variable", "ATC")

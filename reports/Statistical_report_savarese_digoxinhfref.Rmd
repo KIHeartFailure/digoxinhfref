@@ -75,6 +75,10 @@ The median age (IQR) is `r pdata %>% summarise(med = dF(median(shf_age), dig = 1
   
 ## Created variables 
 
+```{r npr}
+mykable(metaout, caption = "Additional comorbidities from NPR")
+```
+
 ```{r atc}
 mykable(metalm, caption = "Treatments from DDR")
 ```

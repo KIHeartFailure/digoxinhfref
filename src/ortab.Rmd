@@ -201,7 +201,7 @@ orforest <- orforest %>%
       Variable == "shf_potassiumhypokalemia" ~ "Hypokalemia",
       Variable == "scb_famtypeLiving alone" ~ "Living alone",
       Variable == "shf_deviceCRT/ICD" ~ "CRT/ICD",
-      Variable == "shf_durationhf>6mo" ~ "Duration HF > 6 vs < 6 (mo)",
+      Variable == "shf_durationhf>6mo" ~ "HF duration > 6 vs < 6 (mo)",
       Variable == "shf_age>=75" ~ "Age >=75 vs <75 (years)",
       Variable == "shf_potassiumhyperkalemia" ~ "Hyperkalemia",
       Variable == "shf_smokingCurrent" ~ "Smoker",

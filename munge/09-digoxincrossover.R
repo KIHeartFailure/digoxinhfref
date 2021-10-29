@@ -16,17 +16,45 @@ matchplm <- left_join(matchp,
     tmp_digoxin
   )
 
+matchplm_af <- left_join(matchp_af,
+  lm,
+  by = "LopNr"
+) %>%
+  mutate(tmp_digoxin = stringr::str_detect(
+    ATC,
+    "^(C01AA05)"
+  )) %>%
+  filter(
+    EDATUM <= ymd("2018-12-31"),
+    EDATUM >= shf_indexdtm + 14,
+    tmp_digoxin
+  )
+
+matchplm_noaf <- left_join(matchp_noaf,
+  lm,
+  by = "LopNr"
+) %>%
+  mutate(tmp_digoxin = stringr::str_detect(
+    ATC,
+    "^(C01AA05)"
+  )) %>%
+  filter(
+    EDATUM <= ymd("2018-12-31"),
+    EDATUM >= shf_indexdtm + 14,
+    tmp_digoxin
+  )
+
 # assume that if you are on you are on until LAST dispension + 3 mo OR 2018-08-01
 # (last follow-up - 5 mo) OR death - 5 mo
 # independent of how long time between dispensions
 # although sort of crude, is probably the option that will reflect reality
 # the best for the majority of patients.
 
-crossoverfunc <- function(time, event) {
+crossoverfunc <- function(lmdata, matchdata, time, event) {
   time <- sym(time)
   event <- sym(event)
 
-  matchplm2 <- matchplm %>%
+  matchplm2 <- lmdata %>%
     filter(EDATUM <= shf_indexdtm + !!time) %>%
     group_by(LopNr) %>%
     arrange(EDATUM) %>%
@@ -34,7 +62,7 @@ crossoverfunc <- function(time, event) {
     mutate(firstlast = ifelse(row_number() == 1, "firstdtm", "lastdtm")) %>%
     ungroup()
 
-  matchplm3 <- left_join(matchp,
+  matchplm3 <- left_join(matchdata,
     matchplm2 %>% select(LopNr, firstlast, EDATUM),
     by = "LopNr"
   ) %>%
@@ -57,7 +85,7 @@ crossoverfunc <- function(time, event) {
     rename(ddr_digoxin = crossover_ddr_digoxin)
 
   matchpcrossover <- bind_rows(
-    matchp,
+    matchdata,
     matchplm3
   ) %>%
     mutate(dtmuse = coalesce(crossoverdtm, shf_indexdtm)) %>%
@@ -79,19 +107,64 @@ crossoverfunc <- function(time, event) {
     ) %>%
     ungroup() %>%
     arrange(LopNr, dtmuse) %>%
-    select(LopNr, shf_indexdtm, ddr_digoxin, start, stop, !!event, par, shf_sos_com_af)
+    select(LopNr, shf_indexdtm, ddr_digoxin, start, stop, !!event, par)
   return(matchpcrossover)
 }
 
 matchpcross_deathhosphf <- crossoverfunc(
+  lmdata = matchplm,
+  matchdata = matchp,
   time = "sos_outtime_hosphf",
   event = "sos_out_deathhosphf"
 )
 matchpcross_death <- crossoverfunc(
+  lmdata = matchplm,
+  matchdata = matchp,
   time = "sos_outtime_death",
   event = "sos_out_death"
 )
 matchpcross_hosphf <- crossoverfunc(
+  lmdata = matchplm,
+  matchdata = matchp,
+  time = "sos_outtime_hosphf",
+  event = "sos_out_hosphf"
+)
+
+matchpcross_af_deathhosphf <- crossoverfunc(
+  lmdata = matchplm_af,
+  matchdata = matchp_af,
+  time = "sos_outtime_hosphf",
+  event = "sos_out_deathhosphf"
+)
+matchpcross_af_death <- crossoverfunc(
+  lmdata = matchplm_af,
+  matchdata = matchp_af,
+  time = "sos_outtime_death",
+  event = "sos_out_death"
+)
+matchpcross_af_hosphf <- crossoverfunc(
+  lmdata = matchplm_af,
+  matchdata = matchp_af,
+  time = "sos_outtime_hosphf",
+  event = "sos_out_hosphf"
+)
+
+
+matchpcross_noaf_deathhosphf <- crossoverfunc(
+  lmdata = matchplm_noaf,
+  matchdata = matchp_noaf,
+  time = "sos_outtime_hosphf",
+  event = "sos_out_deathhosphf"
+)
+matchpcross_noaf_death <- crossoverfunc(
+  lmdata = matchplm_noaf,
+  matchdata = matchp_noaf,
+  time = "sos_outtime_death",
+  event = "sos_out_death"
+)
+matchpcross_noaf_hosphf <- crossoverfunc(
+  lmdata = matchplm_noaf,
+  matchdata = matchp_noaf,
   time = "sos_outtime_hosphf",
   event = "sos_out_hosphf"
 )
